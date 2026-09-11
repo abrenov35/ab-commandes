@@ -5,34 +5,65 @@
   const EMBED_STATE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
   const PENDING_KEY='AB_COMMANDES_PENDING_OPS_V1';
   const LOCAL_MAX_AGE=30*24*60*60*1000;
-  const REMOTE_SYNC_MS=5*60*1000;
-  const MIN_REMOTE_GAP_MS=45*1000;
-  const YAYA_SYNC_MS=5*60*1000;
-  const RESEND_MS=90*1000;
-  const VERIFY_DELAY_MS=1800;
+  const OPEN_SYNC_DELAY_MS=700;
 
   let queue=readQueue();
   let remoteSyncInFlight=false;
   let flushInFlight=false;
   let deferredRender=false;
-  let lastYayaSync=0;
-  let lastRemoteSync=0;
-  let verifyTimer=0;
+  let openingSyncDone=false;
 
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
 
-  function orderComparable(o){return {id:text(o&&o.id),chantierId:text(o&&(o.chantierId||o.chantier_id)),chantier:text(o&&o.chantier),produit:text(o&&o.produit),qte:text(o&&o.qte),prix:text(o&&o.prix),fournisseur:text(o&&o.fournisseur),responsable:text(o&&o.responsable),status:text(o&&o.status),notes:text(o&&o.notes)}}
-  function docComparable(d){return {id:text(d&&d.id),commande_id:text(d&&d.commande_id),chantier:text(d&&d.chantier),type:text(d&&d.type),nom_fichier:text(d&&d.nom_fichier),url_pdf:text(d&&d.url_pdf),source:text(d&&d.source),date_document:text(d&&d.date_document),auteur:text(d&&d.auteur)}}
+  function orderComparable(o){
+    return {
+      id:text(o&&o.id),
+      chantierId:text(o&&(o.chantierId||o.chantier_id)),
+      chantier:text(o&&o.chantier),
+      produit:text(o&&o.produit),
+      qte:text(o&&o.qte),
+      prix:text(o&&o.prix),
+      fournisseur:text(o&&o.fournisseur),
+      responsable:text(o&&o.responsable),
+      status:text(o&&o.status),
+      notes:text(o&&o.notes)
+    };
+  }
+
+  function docComparable(d){
+    return {
+      id:text(d&&d.id),
+      commande_id:text(d&&d.commande_id),
+      chantier:text(d&&d.chantier),
+      type:text(d&&d.type),
+      nom_fichier:text(d&&d.nom_fichier),
+      url_pdf:text(d&&d.url_pdf),
+      source:text(d&&d.source),
+      date_document:text(d&&d.date_document),
+      auteur:text(d&&d.auteur)
+    };
+  }
+
   function sameComparable(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+
   function stateSignature(orderList,docList){
     const os=safeArray(orderList).map(orderComparable).sort((a,b)=>a.id.localeCompare(b.id)||JSON.stringify(a).localeCompare(JSON.stringify(b)));
     const ds=safeArray(docList).map(docComparable).sort((a,b)=>a.id.localeCompare(b.id)||JSON.stringify(a).localeCompare(JSON.stringify(b)));
     return JSON.stringify([os,ds]);
   }
 
-  function readQueue(){try{const raw=localStorage.getItem(PENDING_KEY);const parsed=raw?JSON.parse(raw):[];return Array.isArray(parsed)?parsed:[]}catch(e){return []}}
-  function persistQueue(){try{localStorage.setItem(PENDING_KEY,JSON.stringify(queue))}catch(e){}}
+  function readQueue(){
+    try{
+      const raw=localStorage.getItem(PENDING_KEY);
+      const parsed=raw?JSON.parse(raw):[];
+      return Array.isArray(parsed)?parsed:[];
+    }catch(e){return []}
+  }
+
+  function persistQueue(){
+    try{localStorage.setItem(PENDING_KEY,JSON.stringify(queue))}catch(e){}
+  }
 
   function saveLocalState(){
     try{
@@ -45,7 +76,8 @@
   function readCachedState(){
     for(const key of [LOCAL_STATE_KEY,EMBED_STATE_KEY]){
       try{
-        const raw=localStorage.getItem(key);if(!raw)continue;
+        const raw=localStorage.getItem(key);
+        if(!raw)continue;
         const cached=JSON.parse(raw);
         if(!cached||!Array.isArray(cached.orders))continue;
         if(cached.savedAt&&Date.now()-Number(cached.savedAt)>LOCAL_MAX_AGE)continue;
@@ -60,21 +92,29 @@
       const cached=readCachedState();
       if(!cached)return false;
       if(safeArray(orders).length)return false;
-      orders=cached.orders.map(o=>{try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}});
+      orders=cached.orders.map(o=>{
+        try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}
+      });
       documents=safeArray(cached.documents);
       const merged=overlayPending(orders,documents);
-      orders=merged.orders;documents=merged.documents;
+      orders=merged.orders;
+      documents=merged.documents;
       if(typeof renderAll==='function')renderAll();
       try{setSync(true,queue.length?'Dernier affichage chargé · modifications en attente':'Dernier affichage chargé')}catch(e){}
       return true;
     }catch(e){return false}
   }
 
-  function coalesce(op){queue=queue.filter(x=>!(x&&x.entity===op.entity&&text(x.targetId)===text(op.targetId)));queue.push(op);persistQueue()}
-  function queueOrderUpsert(obj){coalesce({entity:'order',action:'upsert',targetId:text(obj.id),payload:obj,createdAt:Date.now(),lastSentAt:0,attempts:0})}
-  function queueOrderDelete(id){coalesce({entity:'order',action:'delete',targetId:text(id),createdAt:Date.now(),lastSentAt:0,attempts:0})}
-  function queueDocUpsert(obj){coalesce({entity:'document',action:'upsert',targetId:text(obj.id),payload:obj,createdAt:Date.now(),lastSentAt:0,attempts:0})}
-  function queueDocDelete(id){coalesce({entity:'document',action:'delete',targetId:text(id),createdAt:Date.now(),lastSentAt:0,attempts:0})}
+  function coalesce(op){
+    queue=queue.filter(x=>!(x&&x.entity===op.entity&&text(x.targetId)===text(op.targetId)));
+    queue.push(op);
+    persistQueue();
+  }
+
+  function queueOrderUpsert(obj){coalesce({entity:'order',action:'upsert',targetId:text(obj.id),payload:obj,createdAt:Date.now()})}
+  function queueOrderDelete(id){coalesce({entity:'order',action:'delete',targetId:text(id),createdAt:Date.now()})}
+  function queueDocUpsert(obj){coalesce({entity:'document',action:'upsert',targetId:text(obj.id),payload:obj,createdAt:Date.now()})}
+  function queueDocDelete(id){coalesce({entity:'document',action:'delete',targetId:text(id),createdAt:Date.now()})}
 
   function pendingConfirmed(op,remoteOrders,remoteDocs){
     if(op.entity==='order'){
@@ -87,132 +127,210 @@
     return !!found&&sameComparable(docComparable(found),docComparable(op.payload));
   }
 
-  function reconcileQueue(remoteOrders,remoteDocs){const before=queue.length;queue=queue.filter(op=>!pendingConfirmed(op,remoteOrders,remoteDocs));if(queue.length!==before)persistQueue()}
+  function reconcileQueue(remoteOrders,remoteDocs){
+    const before=queue.length;
+    queue=queue.filter(op=>!pendingConfirmed(op,remoteOrders,remoteDocs));
+    if(queue.length!==before)persistQueue();
+  }
 
   function overlayPending(remoteOrders,remoteDocs){
     const orderMap=new Map(safeArray(remoteOrders).map(o=>[text(o.id),o]));
     const docMap=new Map(safeArray(remoteDocs).map(d=>[text(d.id),d]));
+
     queue.forEach(op=>{
       const id=text(op.targetId);
       if(op.entity==='order'){
         if(op.action==='delete')orderMap.delete(id);
-        else{let next={...(orderMap.get(id)||{}),...op.payload};try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}orderMap.set(id,next)}
+        else{
+          let next={...(orderMap.get(id)||{}),...op.payload};
+          try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}
+          orderMap.set(id,next);
+        }
       }else if(op.entity==='document'){
-        if(op.action==='delete')docMap.delete(id);else docMap.set(id,{...(docMap.get(id)||{}),...op.payload});
+        if(op.action==='delete')docMap.delete(id);
+        else docMap.set(id,{...(docMap.get(id)||{}),...op.payload});
       }
     });
+
     return {orders:[...orderMap.values()],documents:[...docMap.values()]};
   }
 
   function modalOpen(){return !!document.querySelector('.modal.show')}
-  function renderWhenIdle(){if(!deferredRender)return;if(modalOpen()){setTimeout(renderWhenIdle,250);return}deferredRender=false;if(typeof renderAll==='function')renderAll()}
+
+  function renderWhenIdle(){
+    if(!deferredRender)return;
+    if(modalOpen()){setTimeout(renderWhenIdle,250);return}
+    deferredRender=false;
+    if(typeof renderAll==='function')renderAll();
+  }
 
   function applyState(nextOrders,nextDocs,allowRender=true){
-    const before=stateSignature(orders,documents),after=stateSignature(nextOrders,nextDocs);
+    const before=stateSignature(orders,documents);
+    const after=stateSignature(nextOrders,nextDocs);
     if(before===after)return false;
-    orders=nextOrders;documents=nextDocs;saveLocalState();
-    if(allowRender){if(modalOpen()){deferredRender=true;setTimeout(renderWhenIdle,250)}else if(typeof renderAll==='function')renderAll()}
+    orders=nextOrders;
+    documents=nextDocs;
+    saveLocalState();
+    if(allowRender){
+      if(modalOpen()){
+        deferredRender=true;
+        setTimeout(renderWhenIdle,250);
+      }else if(typeof renderAll==='function'){
+        renderAll();
+      }
+    }
     return true;
   }
 
-  async function backgroundLoadAll(silent=true,force=false){
-    if(remoteSyncInFlight)return false;
-    const now=Date.now();
-    if(!force&&silent&&lastRemoteSync&&now-lastRemoteSync<MIN_REMOTE_GAP_MS)return false;
-    if(silent&&document.hidden&&!queue.length)return false;
+  async function syncOnceOnOpen(){
+    if(openingSyncDone||remoteSyncInFlight)return false;
+    openingSyncDone=true;
     remoteSyncInFlight=true;
     try{
       const [a,b]=await Promise.all([jsonp('list'),jsonp('documents')]);
       if(!a||!a.ok)throw new Error((a&&a.error)||'Lecture commandes impossible');
       if(!b||!b.ok)throw new Error((b&&b.error)||'Lecture documents impossible');
-      const remoteOrders=safeArray(a.commandes).map(o=>{try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}});
+
+      const remoteOrders=safeArray(a.commandes).map(o=>{
+        try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}
+      });
       const remoteDocs=safeArray(b.documents);
+
       reconcileQueue(remoteOrders,remoteDocs);
       const merged=overlayPending(remoteOrders,remoteDocs);
-      const changed=applyState(merged.orders,merged.documents,true);
-      lastRemoteSync=Date.now();
-      try{setSync(true,queue.length?'Enregistré localement · envoi en arrière-plan':'À jour')}catch(e){}
-      return changed;
+      applyState(merged.orders,merged.documents,true);
+      try{setSync(true,queue.length?'Données chargées · modifications à envoyer':'À jour à l’ouverture')}catch(e){}
+      return true;
     }catch(e){
-      console.warn('AB COMMANDES · synchro arrière-plan',e);
-      if(!silent){try{setSync(false,'Dernier affichage conservé · reprise automatique')}catch(err){}}
+      console.warn('AB COMMANDES · synchro à l’ouverture',e);
+      try{setSync(false,'Dernier affichage conservé')}catch(err){}
       return false;
-    }finally{remoteSyncInFlight=false}
+    }finally{
+      remoteSyncInFlight=false;
+    }
   }
 
-  function scheduleVerification(){clearTimeout(verifyTimer);verifyTimer=setTimeout(()=>backgroundLoadAll(true,true),VERIFY_DELAY_MS)}
+  async function sendOperation(op){
+    let result;
+    if(op.entity==='order'&&op.action==='upsert')result=await post({action:'upsert',...op.payload});
+    else if(op.entity==='order'&&op.action==='delete')result=await post({action:'delete',id:op.targetId});
+    else if(op.entity==='document'&&op.action==='upsert')result=await post({action:'document_upsert',...op.payload});
+    else if(op.entity==='document'&&op.action==='delete')result=await post({action:'document_delete',id:op.targetId});
+    if(result&&result.ok===false)throw new Error(result.error||'Envoi impossible');
+    return result;
+  }
 
   async function flushQueue(){
-    if(flushInFlight||!queue.length)return;
-    if(typeof navigator!=='undefined'&&navigator.onLine===false)return;
-    flushInFlight=true;let sent=false;
+    if(flushInFlight||!queue.length)return false;
+    if(typeof navigator!=='undefined'&&navigator.onLine===false)return false;
+    flushInFlight=true;
+    let sentAny=false;
+
     try{
-      const now=Date.now();
       for(const op of [...queue]){
-        if(Number(op.lastSentAt||0)&&now-Number(op.lastSentAt)<RESEND_MS)continue;
         try{
-          if(op.entity==='order'&&op.action==='upsert')await post({action:'upsert',...op.payload});
-          else if(op.entity==='order'&&op.action==='delete')await post({action:'delete',id:op.targetId});
-          else if(op.entity==='document'&&op.action==='upsert')await post({action:'document_upsert',...op.payload});
-          else if(op.entity==='document'&&op.action==='delete')await post({action:'document_delete',id:op.targetId});
-          const current=queue.find(x=>x.entity===op.entity&&text(x.targetId)===text(op.targetId));
-          if(current){current.lastSentAt=Date.now();current.attempts=Number(current.attempts||0)+1}
-          sent=true;
-        }catch(e){console.warn('AB COMMANDES · envoi différé',e)}
+          await sendOperation(op);
+          queue=queue.filter(current=>current!==op);
+          persistQueue();
+          sentAny=true;
+        }catch(e){
+          console.warn('AB COMMANDES · envoi différé',e);
+        }
       }
-      persistQueue();
-    }finally{flushInFlight=false}
-    if(sent)scheduleVerification();
+    }finally{
+      flushInFlight=false;
+    }
+
+    if(sentAny){
+      try{setSync(true,queue.length?'Certaines modifications restent en attente':'Enregistré')}catch(e){}
+    }
+    return sentAny;
   }
 
   try{
     saveOrder=async function(obj){
-      const id=text(obj&&obj.id),current=safeArray(orders),idx=current.findIndex(o=>text(o.id)===id),existing=idx>=0?current[idx]:{};
-      let next={...existing,...obj};try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}
-      const nextOrders=current.slice();if(idx>=0)nextOrders[idx]=next;else nextOrders.push(next);orders=nextOrders;
-      queueOrderUpsert(next);saveLocalState();if(typeof renderAll==='function')renderAll();
-      try{setSync(true,'Enregistré immédiatement · envoi en arrière-plan')}catch(e){}
-      setTimeout(flushQueue,0);return true;
+      const id=text(obj&&obj.id);
+      const current=safeArray(orders);
+      const idx=current.findIndex(o=>text(o.id)===id);
+      const existing=idx>=0?current[idx]:{};
+      let next={...existing,...obj};
+      try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}
+      const nextOrders=current.slice();
+      if(idx>=0)nextOrders[idx]=next;else nextOrders.push(next);
+      orders=nextOrders;
+      queueOrderUpsert(next);
+      saveLocalState();
+      if(typeof renderAll==='function')renderAll();
+      try{setSync(true,'Enregistré localement · envoi en cours')}catch(e){}
+      setTimeout(flushQueue,0);
+      return true;
     };
 
-    deleteOrder=async function(id){const target=text(id);orders=safeArray(orders).filter(o=>text(o.id)!==target);queueOrderDelete(target);saveLocalState();if(typeof renderAll==='function')renderAll();try{setSync(true,'Suppression immédiate · envoi en arrière-plan')}catch(e){}setTimeout(flushQueue,0);return true};
+    deleteOrder=async function(id){
+      const target=text(id);
+      orders=safeArray(orders).filter(o=>text(o.id)!==target);
+      queueOrderDelete(target);
+      saveLocalState();
+      if(typeof renderAll==='function')renderAll();
+      try{setSync(true,'Suppression locale · envoi en cours')}catch(e){}
+      setTimeout(flushQueue,0);
+      return true;
+    };
 
-    saveDocument=async function(doc){const id=text(doc&&doc.id),current=safeArray(documents),idx=current.findIndex(d=>text(d.id)===id),nextDocs=current.slice();if(idx>=0)nextDocs[idx]={...current[idx],...doc};else nextDocs.push(doc);documents=nextDocs;queueDocUpsert(doc);saveLocalState();if(typeof renderAll==='function')renderAll();try{if(typeof renderDocList==='function')renderDocList()}catch(e){}try{setSync(true,'Document enregistré immédiatement · envoi en arrière-plan')}catch(e){}setTimeout(flushQueue,0);return true};
+    saveDocument=async function(doc){
+      const id=text(doc&&doc.id);
+      const current=safeArray(documents);
+      const idx=current.findIndex(d=>text(d.id)===id);
+      const nextDocs=current.slice();
+      if(idx>=0)nextDocs[idx]={...current[idx],...doc};else nextDocs.push(doc);
+      documents=nextDocs;
+      queueDocUpsert(doc);
+      saveLocalState();
+      if(typeof renderAll==='function')renderAll();
+      try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
+      try{setSync(true,'Document enregistré localement · envoi en cours')}catch(e){}
+      setTimeout(flushQueue,0);
+      return true;
+    };
 
-    deleteDocument=async function(id){const target=text(id);documents=safeArray(documents).filter(d=>text(d.id)!==target);queueDocDelete(target);saveLocalState();if(typeof renderAll==='function')renderAll();try{if(typeof renderDocList==='function')renderDocList()}catch(e){}try{setSync(true,'Suppression immédiate · envoi en arrière-plan')}catch(e){}setTimeout(flushQueue,0);return true};
+    deleteDocument=async function(id){
+      const target=text(id);
+      documents=safeArray(documents).filter(d=>text(d.id)!==target);
+      queueDocDelete(target);
+      saveLocalState();
+      if(typeof renderAll==='function')renderAll();
+      try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
+      try{setSync(true,'Suppression locale · envoi en cours')}catch(e){}
+      setTimeout(flushQueue,0);
+      return true;
+    };
 
-    loadAll=backgroundLoadAll;
-  }catch(e){console.error('AB COMMANDES · installation synchro locale',e)}
-
-  try{
-    if(typeof loadYayaChantiers==='function'){
-      const originalLoadYayaChantiers=loadYayaChantiers;
-      loadYayaChantiers=async function(force=false){
-        const now=Date.now();if(!force&&lastYayaSync&&now-lastYayaSync<YAYA_SYNC_MS)return true;
-        lastYayaSync=now;return originalLoadYayaChantiers(force);
-      };
-    }
-  }catch(e){}
+    /* Toute demande de relecture pendant que la page reste ouverte est neutralisée. */
+    loadAll=async function(){return false};
+  }catch(e){
+    console.error('AB COMMANDES · installation synchro ouverture seule',e);
+  }
 
   const hadCache=hydrateLocalState();
-  if(queue.length){const merged=overlayPending(safeArray(orders),safeArray(documents));applyState(merged.orders,merged.documents,true);setTimeout(flushQueue,0)}
-  else if(!hadCache)saveLocalState();
+  if(queue.length){
+    const merged=overlayPending(safeArray(orders),safeArray(documents));
+    applyState(merged.orders,merged.documents,true);
+  }else if(!hadCache){
+    saveLocalState();
+  }
 
-  /* Cache d'abord, puis une lecture réseau. Aucun polling court. */
-  setTimeout(()=>{
-    backgroundLoadAll(true,true);
+  /* Une seule synchronisation : au chargement / à la réouverture de la page Commande. */
+  setTimeout(async()=>{
+    await syncOnceOnOpen();
+    await flushQueue();
     try{
       if(typeof loadYayaChantiers==='function'){
-        Promise.resolve(loadYayaChantiers(false)).then(()=>{try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}});
+        await Promise.resolve(loadYayaChantiers(true));
+        try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}
       }
     }catch(e){}
-  },700);
+  },OPEN_SYNC_DELAY_MS);
 
-  /* Synchro distante calme : 5 min. Les écritures, elles, partent immédiatement. */
-  setInterval(()=>backgroundLoadAll(true,false),REMOTE_SYNC_MS);
-  setInterval(()=>{try{if(!document.hidden&&typeof loadYayaChantiers==='function')loadYayaChantiers(false)}catch(e){}},YAYA_SYNC_MS);
-  window.addEventListener('online',()=>{flushQueue();backgroundLoadAll(true,true)});
-  document.addEventListener('visibilitychange',()=>{if(!document.hidden){flushQueue();backgroundLoadAll(true,false)}});
-
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.3';
+  /* Aucun setInterval, aucun visibilitychange, aucune resynchronisation automatique. */
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.4-open-only';
 })();
