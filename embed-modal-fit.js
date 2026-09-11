@@ -1,11 +1,9 @@
 (function(){
   'use strict';
 
-  /* AB_COMMANDES_TOPBAR_V38
-     Mise en bandeau uniquement par CSS.
-     Les clics restent gérés par embed-mode.js pour éviter les conflits de handlers. */
+  /* AB_COMMANDES_TOPBAR_V39 */
   const topbarStyle=document.createElement('style');
-  topbarStyle.id='ab-commandes-topbar-v38-style';
+  topbarStyle.id='ab-commandes-topbar-v39-style';
   topbarStyle.textContent=`
     html,body{margin:0!important;padding:0!important}
     body:not(.ab-embed-mode) .app{
@@ -68,6 +66,7 @@
       overflow-x:auto!important;
       overflow-y:hidden!important;
       scrollbar-width:none!important;
+      pointer-events:auto!important;
     }
     body:not(.ab-embed-mode) .side .nav::-webkit-scrollbar{display:none!important}
     body:not(.ab-embed-mode) .side .nav button{
@@ -91,6 +90,8 @@
       box-shadow:none!important;
       cursor:pointer!important;
       pointer-events:auto!important;
+      position:relative!important;
+      z-index:101!important;
     }
     body:not(.ab-embed-mode) .side .nav button:hover{
       background:rgba(255,255,255,.15)!important;
@@ -140,6 +141,96 @@
     }
   `;
   document.head.appendChild(topbarStyle);
+
+  /* Contrôleur unique de la toolbar.
+     Il intercepte les clics avant les anciens handlers pour éviter les conflits. */
+  function ensureToolbarButtons(){
+    const nav=document.querySelector('.side .nav');
+    if(!nav)return null;
+
+    function getOrCreate(selector,view,status,label){
+      let b=nav.querySelector(selector);
+      if(!b){
+        b=document.createElement('button');
+        b.type='button';
+        if(view)b.dataset.view=view;
+        if(status)b.dataset.abStatusNav=status;
+      }
+      b.textContent=label;
+      return b;
+    }
+
+    const overview=getOrCreate('button[data-view="overview"]','overview','',"⌂ Vue d'ensemble");
+    const chantiers=getOrCreate('button[data-view="chantiers"]','chantiers','','🛠 Chantiers actifs');
+    const commandes=getOrCreate('button[data-view="commandes"]','commandes','','📦 Commandes');
+    const todo=getOrCreate('button[data-ab-status-nav="todo"]','','todo','🟠 À commander');
+    const received=getOrCreate('button[data-ab-status-nav="received"]','','received','🟢 Reçu');
+    const choice=getOrCreate('button[data-ab-status-nav="choice"]','','choice','🟣 Choix client');
+
+    [overview,chantiers,commandes,todo,received,choice].forEach(b=>nav.appendChild(b));
+    return nav;
+  }
+
+  function activateToolbarButton(button){
+    if(!button)return;
+    const nav=button.closest('.nav');
+    if(!nav)return;
+
+    const status=String(button.dataset.abStatusNav||'');
+    const view=status?'commandes':String(button.dataset.view||'');
+    if(!view)return;
+
+    nav.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+    button.classList.add('active');
+
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    const target=document.getElementById(view);
+    if(target)target.classList.add('active');
+
+    const filter=document.getElementById('filterStatus');
+    if(filter)filter.value=status;
+
+    try{
+      if(typeof window.renderAll==='function')window.renderAll();
+      else if(typeof renderAll==='function')renderAll();
+    }catch(err){
+      console.error('AB COMMANDES toolbar render:',err);
+    }
+
+    /* renderAll peut reconstruire certains éléments : on réaffirme l'état actif. */
+    requestAnimationFrame(()=>{
+      nav.querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      button.classList.add('active');
+      const t=document.getElementById(view);
+      if(t){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));t.classList.add('active');}
+      const f=document.getElementById('filterStatus');
+      if(f)f.value=status;
+    });
+
+    try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){}
+  }
+
+  function installToolbarController(){
+    const nav=ensureToolbarButtons();
+    if(!nav||nav.dataset.abToolbarController==='1')return;
+    nav.dataset.abToolbarController='1';
+    nav.addEventListener('click',function(e){
+      const button=e.target.closest('button');
+      if(!button||!nav.contains(button))return;
+      const isToolbarButton=button.dataset.view||button.dataset.abStatusNav;
+      if(!isToolbarButton)return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      activateToolbarButton(button);
+    },true);
+  }
+
+  installToolbarController();
+  window.addEventListener('DOMContentLoaded',installToolbarController,{once:true});
+  setTimeout(installToolbarController,250);
+  setTimeout(installToolbarController,900);
+  setTimeout(installToolbarController,1800);
 
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
@@ -248,5 +339,5 @@
   setTimeout(fitModal,50);
   setTimeout(fitModal,250);
 
-  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.3';
+  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.4';
 })();
