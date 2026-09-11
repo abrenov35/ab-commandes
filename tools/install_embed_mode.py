@@ -10,6 +10,7 @@ kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
+price_new='<script src="modal-price-lock.js?v=1"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -88,9 +89,17 @@ for old in (
         break
 if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
-# Le contrôleur de repli doit être chargé en dernier, après tous les wrappers de rendu.
+# Prix optionnel + chantier figé : chargé après le contrôleur d'édition centralisée.
+for old in (
+    '<script src="modal-price-lock.js?v=1"></script>\n',
+    '<script src="modal-price-lock.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(detail_new,detail_new+'\n'+price_new,1)
+
+# Le contrôleur de repli doit rester le dernier wrapper de rendu.
 if collapsed_new not in s:
-    s=s.replace(detail_new,detail_new+'\n'+collapsed_new,1)
+    s=s.replace(price_new,price_new+'\n'+collapsed_new,1)
 
 old_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();'
 new_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();'
@@ -100,4 +109,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - édition produit par libellé + suppression/document en modale v3')
+print('AB COMMANDES - prix optionnel persistant + chantier figé dans la modale')
