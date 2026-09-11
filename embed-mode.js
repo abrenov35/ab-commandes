@@ -168,8 +168,7 @@
     body.ab-embed-mode .fiche-kpis .kpi span{font-size:11px!important;line-height:1.15!important}
     body.ab-embed-mode .toolbar{margin:12px 0 9px!important}
     body.ab-embed-mode .toolbar h2{font-size:18px!important}
-    body.ab-embed-mode #chantierFiche .toolbar h2{font-size:0!important}
-    body.ab-embed-mode #chantierFiche .toolbar h2::after{content:'État des commandes';font-size:18px!important;line-height:1.2!important}
+    body.ab-embed-mode #chantierFiche .toolbar h2{display:none!important}
     body.ab-embed-mode .order-row{box-shadow:none!important}
     body.ab-embed-mode .empty{margin-bottom:0!important;padding:18px!important}
     body.ab-embed-mode .ab-status-groups{gap:8px!important}
@@ -240,5 +239,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.9';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='3.0';
 })();
