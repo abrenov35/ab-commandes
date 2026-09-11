@@ -43,14 +43,22 @@
     document.head.appendChild(style);
   }
 
+  let forcedHeight=0;
+  let lastPostedHeight=0;
+
   function clearForcedHeight(){
+    if(!forcedHeight)return;
+    forcedHeight=0;
     document.body.style.removeProperty('min-height');
     document.documentElement.style.removeProperty('min-height');
   }
 
   function postHeight(height){
+    const h=Math.max(120,Math.ceil(height));
+    if(Math.abs(h-lastPostedHeight)<2)return;
+    lastPostedHeight=h;
     try{
-      window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:Math.max(120,Math.ceil(height))},'*');
+      window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:h},'*');
     }catch(e){}
   }
 
@@ -76,8 +84,11 @@
     requestAnimationFrame(()=>{
       const dialogHeight=Math.ceil(Math.max(dialog.scrollHeight||0,dialog.getBoundingClientRect().height||0));
       const needed=Math.max(420,dialogHeight+32);
-      document.body.style.setProperty('min-height',needed+'px','important');
-      document.documentElement.style.setProperty('min-height',needed+'px','important');
+      if(Math.abs(needed-forcedHeight)>=2){
+        forcedHeight=needed;
+        document.body.style.setProperty('min-height',needed+'px','important');
+        document.documentElement.style.setProperty('min-height',needed+'px','important');
+      }
 
       const natural=Math.max(
         document.body.scrollHeight||0,
@@ -97,5 +108,5 @@
   setTimeout(fitModal,50);
   setTimeout(fitModal,250);
 
-  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.0';
+  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.1';
 })();
