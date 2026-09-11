@@ -293,11 +293,12 @@ function renderDocList(){if(!currentDocOrderId)return;const a=documents.filter(d
 async function addDoc(){const o=orders.find(x=>x.id===currentDocOrderId);const url=$('#dUrl').value.trim();if(!url){alert('Ajoute l’URL du PDF.');return}const doc={id:uid(),commande_id:currentDocOrderId,chantier:o?.chantier||'',type:$('#dType').value,nom_fichier:$('#dName').value.trim()||$('#dType').value,url_pdf:url,source:$('#dSource').value,date_document:$('#dDate').value,auteur:''};$('#dName').value='';$('#dUrl').value='';$('#dDate').value='';await saveDocument(doc)}
 $$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active')});
 $('#addBtn').onclick=()=>openModal();$('#addBtnTop').onclick=()=>openModal();$('#ficheBackBtn').onclick=closeChantierFiche;$('#ficheAddBtn').onclick=addProductForCurrentChantier;$('#cancelBtn').onclick=closeModal;$('#saveBtn').onclick=submit;$('#modal').onclick=e=>{if(e.target===$('#modal'))closeModal()};$('#closeDocBtn').onclick=closeDocs;$('#addDocBtn').onclick=addDoc;$('#docModal').onclick=e=>{if(e.target===$('#docModal'))closeDocs()};$('#search').oninput=renderAll;$('#filterResp').onchange=renderAll;$('#filterStatus').onchange=renderAll;
-renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);
+renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();
 </script>
 <script src="show-all-yaya-chantiers.js?v=allchantiers-5"></script>
 <script src="embed-mode.js?v=10"></script>
 <script src="embed-modal-fit.js?v=2"></script>
 <script src="embed-kpi-shortcuts.js?v=1"></script>
+<script src="background-sync.js?v=1"></script>
 </body>
 </html>
