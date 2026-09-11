@@ -5,7 +5,7 @@ s=p.read_text(encoding='utf-8')
 embed_new='<script src="embed-mode.js?v=10"></script>'
 modal_new='<script src="embed-modal-fit.js?v=2"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=1"></script>'
-bg_new='<script src="background-sync.js?v=1"></script>'
+bg_new='<script src="background-sync.js?v=2"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -31,14 +31,15 @@ if modal_new not in s:
 if kpi_new not in s:
     s=s.replace(modal_new,modal_new+'\n'+kpi_new,1)
 
-if bg_new not in s:
+bg_old='<script src="background-sync.js?v=1"></script>'
+if bg_old in s:
+    s=s.replace(bg_old,bg_new,1)
+elif bg_new not in s:
     s=s.replace(kpi_new,kpi_new+'\n'+bg_new,1)
 
-# L'ancien minuteur relisait toutes les données et reconstruisait tout le DOM chaque minute.
-# background-sync.js reprend désormais ce travail sans rerendu lorsque les données sont identiques.
 old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:
     s=s.replace(old_poll,'loadAll();',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - local-first + synchronisation arrière-plan + tableau stable')
+print('AB COMMANDES - local-first + synchronisation arrière-plan + ordre tableau figé v2')
