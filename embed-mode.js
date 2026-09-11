@@ -12,7 +12,7 @@
   const style=document.createElement('style');
   style.id='ab-commandes-embed-style';
   style.textContent=`
-    html.ab-embed-mode,body.ab-embed-mode{background:#fff!important;min-height:0!important}
+    html.ab-embed-mode,body.ab-embed-mode{background:#fff!important;min-height:0!important;overflow:hidden!important}
     body.ab-embed-mode .app{display:block!important;min-height:0!important}
     body.ab-embed-mode .side{display:none!important}
     body.ab-embed-mode .main{padding:12px 14px 8px!important;max-width:none!important;margin:0!important}
@@ -108,7 +108,7 @@
         document.documentElement.scrollHeight||0,
         document.documentElement.offsetHeight||0
       );
-      const h=Math.max(120,Math.min(1400,contentHeight||260));
+      const h=Math.max(120,Math.ceil(contentHeight||260)+2);
       window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:h},'*');
     }catch(e){}
   }
@@ -123,6 +123,7 @@
   setTimeout(sendHeight,180);
   setTimeout(sendHeight,500);
   setTimeout(sendHeight,1200);
+  setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.2';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.3';
 })();
