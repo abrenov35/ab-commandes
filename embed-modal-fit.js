@@ -1,12 +1,18 @@
 (function(){
   'use strict';
 
-  /* AB_COMMANDES_TOPBAR_V37 */
+  /* AB_COMMANDES_TOPBAR_V38
+     Mise en bandeau uniquement par CSS.
+     Les clics restent gérés par embed-mode.js pour éviter les conflits de handlers. */
   const topbarStyle=document.createElement('style');
-  topbarStyle.id='ab-commandes-topbar-v37-style';
+  topbarStyle.id='ab-commandes-topbar-v38-style';
   topbarStyle.textContent=`
     html,body{margin:0!important;padding:0!important}
-    body:not(.ab-embed-mode) .app{display:block!important;min-height:0!important;height:auto!important}
+    body:not(.ab-embed-mode) .app{
+      display:block!important;
+      min-height:0!important;
+      height:auto!important;
+    }
     body:not(.ab-embed-mode) .side{
       box-sizing:border-box!important;
       width:100%!important;
@@ -45,7 +51,9 @@
       font-weight:900!important;
     }
     body:not(.ab-embed-mode) .side .brand small,
-    body:not(.ab-embed-mode) .side .sync{display:none!important}
+    body:not(.ab-embed-mode) .side .sync{
+      display:none!important;
+    }
     body:not(.ab-embed-mode) .side .nav{
       min-width:0!important;
       height:46px!important;
@@ -81,8 +89,13 @@
       line-height:1!important;
       font-weight:800!important;
       box-shadow:none!important;
+      cursor:pointer!important;
+      pointer-events:auto!important;
     }
-    body:not(.ab-embed-mode) .side .nav button:hover{background:rgba(255,255,255,.15)!important;color:#fff!important}
+    body:not(.ab-embed-mode) .side .nav button:hover{
+      background:rgba(255,255,255,.15)!important;
+      color:#fff!important;
+    }
     body:not(.ab-embed-mode) .side .nav button.active{
       background:rgba(255,255,255,.14)!important;
       color:#fff!important;
@@ -97,58 +110,36 @@
       margin:0 auto!important;
       padding:8px 12px 16px!important;
     }
-    body:not(.ab-embed-mode) .view.active{margin-top:0!important;padding-top:0!important}
+    body:not(.ab-embed-mode) .view.active{
+      margin-top:0!important;
+      padding-top:0!important;
+    }
     @media(max-width:760px){
-      body:not(.ab-embed-mode) .side{height:42px!important;min-height:42px!important;max-height:42px!important;padding:0 6px!important;gap:6px!important}
-      body:not(.ab-embed-mode) .side .brand{font-size:11px!important;padding:0 8px 0 4px!important}
-      body:not(.ab-embed-mode) .side .nav{height:42px!important;gap:5px!important}
-      body:not(.ab-embed-mode) .side .nav button{height:27px!important;min-height:27px!important;padding:0 8px!important;font-size:11px!important}
+      body:not(.ab-embed-mode) .side{
+        height:42px!important;
+        min-height:42px!important;
+        max-height:42px!important;
+        padding:0 6px!important;
+        gap:6px!important;
+      }
+      body:not(.ab-embed-mode) .side .brand{
+        font-size:11px!important;
+        padding:0 8px 0 4px!important;
+      }
+      body:not(.ab-embed-mode) .side .nav{
+        height:42px!important;
+        gap:5px!important;
+      }
+      body:not(.ab-embed-mode) .side .nav button{
+        height:27px!important;
+        min-height:27px!important;
+        padding:0 8px!important;
+        font-size:11px!important;
+      }
       body:not(.ab-embed-mode) .main{padding:7px 8px 12px!important}
     }
   `;
   document.head.appendChild(topbarStyle);
-
-  function activateView(id,btn,status){
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    const view=document.getElementById(id);if(view)view.classList.add('active');
-    document.querySelectorAll('.side .nav button').forEach(b=>b.classList.remove('active'));
-    if(btn)btn.classList.add('active');
-    const f=document.getElementById('filterStatus');
-    if(f)f.value=status||'';
-    try{if(typeof renderAll==='function')renderAll()}catch(e){}
-    try{window.scrollTo({top:0,behavior:'smooth'})}catch(e){}
-  }
-
-  function ensureTopbarButtons(){
-    const nav=document.querySelector('.side .nav');if(!nav)return;
-    let overview=nav.querySelector('button[data-view="overview"]');
-    let chantiers=nav.querySelector('button[data-view="chantiers"]');
-    let commandes=nav.querySelector('button[data-view="commandes"]');
-    if(!overview){overview=document.createElement('button');overview.type='button';overview.dataset.view='overview'}
-    if(!chantiers){chantiers=document.createElement('button');chantiers.type='button';chantiers.dataset.view='chantiers'}
-    if(!commandes){commandes=document.createElement('button');commandes.type='button';commandes.dataset.view='commandes'}
-    overview.textContent="⌂ Vue d'ensemble";
-    chantiers.textContent='🛠 Chantiers actifs';
-    commandes.textContent='📦 Commandes';
-    overview.onclick=()=>activateView('overview',overview,'');
-    chantiers.onclick=()=>activateView('chantiers',chantiers,'');
-    commandes.onclick=()=>activateView('commandes',commandes,'');
-
-    const defs=[['todo','🟠 À commander'],['received','🟢 Reçu'],['choice','🟣 Choix client']];
-    const statusButtons=defs.map(([status,label])=>{
-      let b=nav.querySelector(`button[data-ab-status-nav="${status}"]`);
-      if(!b){b=document.createElement('button');b.type='button';b.dataset.abStatusNav=status}
-      b.textContent=label;
-      b.onclick=()=>activateView('commandes',b,status);
-      return b;
-    });
-    [overview,chantiers,commandes,...statusButtons].forEach(b=>nav.appendChild(b));
-  }
-
-  ensureTopbarButtons();
-  window.addEventListener('DOMContentLoaded',ensureTopbarButtons,{once:true});
-  setTimeout(ensureTopbarButtons,300);
-  setTimeout(ensureTopbarButtons,1200);
 
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
@@ -257,5 +248,5 @@
   setTimeout(fitModal,50);
   setTimeout(fitModal,250);
 
-  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.2';
+  window.__AB_COMMANDES_EMBED_MODAL_FIT_VERSION='1.3';
 })();
