@@ -2,16 +2,16 @@ from pathlib import Path
 
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
-old='<script src="embed-mode.js?v=3"></script>'
-new='<script src="embed-mode.js?v=4"></script>'
+old='<script src="embed-mode.js?v=4"></script>'
+new='<script src="embed-mode.js?v=5"></script>'
 
 if new in s:
-    print('embed-mode stable v4 déjà installé')
+    print('embed-mode v5 déjà installé')
     raise SystemExit(0)
 
 if old not in s:
-    raise SystemExit('Référence embed-mode v3 introuvable : aucune insertion automatique')
+    raise SystemExit('Référence embed-mode v4 introuvable : aucune insertion automatique')
 
 s=s.replace(old,new,1)
 p.write_text(s,encoding='utf-8')
-print('embed-mode stable + cache bust v4')
+print('AB COMMANDES V28 mode Yaya + cache bust v5')
