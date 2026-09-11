@@ -40,7 +40,7 @@ function overviewChantierList(){
 }
 function renderOverviewChantiers(){'''
 
-s2, n = pattern.subn(replacement, s, count=1)
+s2, n = pattern.subn(lambda m: replacement, s, count=1)
 if n != 1:
     raise SystemExit('Fonction overviewChantierList introuvable')
 
