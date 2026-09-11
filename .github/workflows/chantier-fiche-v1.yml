@@ -1,0 +1,33 @@
+name: Fiche commandes par chantier
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer la vue fiche chantier
+        run: python tools/chantier_fiche_v1.py
+      - name: Vérifier la structure
+        run: |
+          grep -q "AB_COMMANDES_CHANTIER_FICHE_V1" index.html
+          grep -q "id=\"chantierFiche\"" index.html
+          grep -q "id=\"overviewChantiers\"" index.html
+      - name: Publier
+        run: |
+          if git diff --quiet; then
+            echo "Aucune modification"
+            exit 0
+          fi
+          git config user.name "AB COMMANDES automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Ajouter les fiches commandes par chantier"
+          git push
