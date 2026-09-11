@@ -8,7 +8,7 @@ embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
-bg_new='<script src="background-sync.js?v=3"></script>'
+bg_new='<script src="background-sync.js?v=4"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=2"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
@@ -71,6 +71,7 @@ if choice_new not in s:s=s.replace(kpi_new,kpi_new+'\n'+choice_new,1)
 
 bg_replaced=False
 for old in (
+    '<script src="background-sync.js?v=4"></script>',
     '<script src="background-sync.js?v=3"></script>',
     '<script src="background-sync.js?v=2"></script>',
     '<script src="background-sync.js?v=1"></script>',
@@ -145,4 +146,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - groupes persistants + contraste titres Yaya v2 + modale produit stricte + upload PDF arrière-plan')
+print('AB COMMANDES - synchro calme v4 + groupes persistants + contraste titres Yaya v2')
