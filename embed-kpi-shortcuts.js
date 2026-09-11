@@ -43,6 +43,11 @@
       outline:2px solid #8fb4ef!important;
       outline-offset:2px!important;
     }
+    body.ab-embed-mode #ficheAddBtn,
+    body.ab-embed-mode #addBtn,
+    body.ab-embed-mode #addBtnTop{
+      display:none!important;
+    }
     @media(max-width:760px){
       body.ab-embed-mode #chantierFiche .fiche-kpis{
         grid-template-columns:repeat(4,minmax(0,1fr))!important;
@@ -64,7 +69,14 @@
     try{id=String(selectedChantierId||'').trim();}catch(e){}
     try{name=String(selectedChantierName||'').trim();}catch(e){}
 
-    if(id)return all.filter(o=>String(o&&o.chantierId||'').trim()===id);
+    try{
+      if(typeof matchingOrdersForChantier==='function')return matchingOrdersForChantier(id,name);
+    }catch(e){}
+
+    if(id){
+      const k=keyName(name);
+      return all.filter(o=>String(o&&o.chantierId||'').trim()===id||(k&&keyName(o&&o.chantier)===k));
+    }
     if(name){
       const k=keyName(name);
       return all.filter(o=>keyName(o&&o.chantier)===k);
@@ -89,14 +101,21 @@
     }catch(e){console.error('AB COMMANDES - ouverture raccourci statut',e)}
   }
 
+  function removeLegacyAddButtons(){
+    ['ficheAddBtn','addBtn','addBtnTop'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.remove();
+    });
+  }
+
   function buildKpis(host){
     host.innerHTML=KPI_DEFS.map(k=>`
-      <div class="card kpi ab-kpi-shortcut" data-ab-status="${k.status}" role="button" tabindex="0" aria-label="Ajouter un produit · ${k.label}">
+      <div class="card kpi ab-kpi-shortcut" data-ab-status="${k.status}" role="button" tabindex="0" aria-label="Ajouter un produit · ${k.label}" title="Ajouter un produit · ${k.label}">
         <span class="status-dot ${k.color}"></span>
         <div><strong id="${k.id}">0</strong><span>${k.label}</span></div>
       </div>
     `).join('')+'<span id="ficheKpiProblem" hidden aria-hidden="true">0</span>';
-    host.dataset.abShortcutKpis='1';
+    host.dataset.abShortcutKpis='3';
 
     host.querySelectorAll('.ab-kpi-shortcut').forEach(card=>{
       const activate=()=>openForStatus(card.dataset.abStatus||'todo');
@@ -110,7 +129,7 @@
   function updateKpis(){
     const host=document.querySelector('#chantierFiche .fiche-kpis');
     if(!host)return;
-    if(host.dataset.abShortcutKpis!=='1'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
+    if(host.dataset.abShortcutKpis!=='3'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
 
     const list=currentFicheOrders();
     KPI_DEFS.forEach(k=>{
@@ -125,14 +144,20 @@
   }
 
   function renameChoiceLabels(){
-    document.querySelectorAll('#chantierFiche .ab-status-heading,#chantierFiche summary,#commandes .ab-status-heading,#commandes summary').forEach(el=>{
-      if(el.innerHTML&&el.innerHTML.includes('Choix client à faire')){
-        el.innerHTML=el.innerHTML.replace(/Choix client à faire/g,'Choix client');
-      }
+    document.querySelectorAll('#chantierFiche,#commandes,#overview,#chantiers').forEach(root=>{
+      const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+      const nodes=[];
+      while(walker.nextNode())nodes.push(walker.currentNode);
+      nodes.forEach(node=>{
+        if(String(node.nodeValue||'').includes('Choix client à faire')){
+          node.nodeValue=String(node.nodeValue).replaceAll('Choix client à faire','Choix client');
+        }
+      });
     });
   }
 
   function refresh(){
+    removeLegacyAddButtons();
     updateKpis();
     renameChoiceLabels();
   }
@@ -157,9 +182,9 @@
   observer.observe(document.body,{childList:true,subtree:true});
 
   window.addEventListener('load',refresh);
-  setTimeout(refresh,50);
-  setTimeout(refresh,250);
-  setTimeout(refresh,800);
+  setTimeout(refresh,20);
+  setTimeout(refresh,150);
+  setTimeout(refresh,600);
 
-  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='1.0';
+  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='3.0';
 })();
