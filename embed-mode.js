@@ -85,6 +85,7 @@
     body.ab-embed-mode #chantierFiche .top{display:none!important}
     body.ab-embed-mode #chantierFiche .title{display:none!important}
     body.ab-embed-mode #chantierFiche .fiche-sub{display:none!important}
+    body.ab-embed-mode #chantierFiche .order-row.header{display:none!important}
     body.ab-embed-mode .fiche-kpis{margin:0 0 14px!important;gap:7px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
     body.ab-embed-mode .fiche-kpis .kpi{min-width:0!important;padding:11px 12px!important;gap:8px!important;box-shadow:none!important}
     body.ab-embed-mode .fiche-kpis .status-dot{width:21px!important;height:21px!important;flex:0 0 21px!important}
@@ -187,5 +188,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.4';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.5';
 })();
