@@ -2,9 +2,9 @@
   'use strict';
   const params=new URL(window.location.href).searchParams;
 
-  /* AB_COMMANDES_TOPBAR_V31 */
+  /* AB_COMMANDES_TOPBAR_V32 */
   const shellStyle=document.createElement('style');
-  shellStyle.id='ab-commandes-topbar-v31-style';
+  shellStyle.id='ab-commandes-topbar-v32-style';
   shellStyle.textContent=`
     @media(max-width:1150px){
       html,body{margin:0!important;padding:0!important}
@@ -127,6 +127,18 @@
   `;
   document.head.appendChild(shellStyle);
 
+  function installOpenChantierButton(){
+    const btn=document.querySelector('.side .nav button[data-view="chantiers"]');
+    if(!btn)return false;
+    btn.textContent='📂 Ouvrir un chantier';
+    btn.title='Ouvrir la liste des chantiers';
+    btn.setAttribute('aria-label','Ouvrir un chantier');
+    return true;
+  }
+  if(!installOpenChantierButton()){
+    window.addEventListener('DOMContentLoaded',installOpenChantierButton,{once:true});
+  }
+
   if(params.get('embed')!=='1')return;
 
   const DATA_CACHE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
@@ -228,5 +240,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.8';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.9';
 })();
