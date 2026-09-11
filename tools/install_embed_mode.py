@@ -5,6 +5,7 @@ s=p.read_text(encoding='utf-8')
 
 embed_new='<script src="embed-mode.js?v=10"></script>'
 modal_new='<script src="embed-modal-fit.js?v=2"></script>'
+compact_new='<script src="embed-modal-compact.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=4"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=2"></script>'
@@ -30,18 +31,22 @@ if modal_new not in s:
     else:
         s=s.replace(embed_new,embed_new+'\n'+modal_new,1)
 
+if compact_new not in s:
+    s=s.replace(modal_new,modal_new+'\n'+compact_new,1)
+
 kpi_replaced=False
 for old in (
+    '<script src="embed-kpi-shortcuts.js?v=4"></script>',
     '<script src="embed-kpi-shortcuts.js?v=3"></script>',
     '<script src="embed-kpi-shortcuts.js?v=2"></script>',
     '<script src="embed-kpi-shortcuts.js?v=1"></script>',
 ):
     if old in s:
-        s=s.replace(old,kpi_new,1)
+        if old!=kpi_new:s=s.replace(old,kpi_new,1)
         kpi_replaced=True
         break
-if not kpi_replaced and kpi_new not in s:
-    s=s.replace(modal_new,modal_new+'\n'+kpi_new,1)
+if not kpi_replaced:
+    s=s.replace(compact_new,compact_new+'\n'+kpi_new,1)
 
 if choice_new not in s:
     s=s.replace(kpi_new,kpi_new+'\n'+choice_new,1)
@@ -63,4 +68,4 @@ if old_poll in s:
     s=s.replace(old_poll,'loadAll();',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - Choix client partout + raccourcis KPI v4')
+print('AB COMMANDES - modale Yaya compacte sans scroll + hauteur auto')
