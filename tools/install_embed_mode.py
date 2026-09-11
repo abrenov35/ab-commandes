@@ -12,6 +12,7 @@ bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=2"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
+contrast_new='<script src="embed-contrast.js?v=1"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -120,9 +121,17 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
 
+# Contraste renforcé uniquement dans Yaya.
+for old in (
+    '<script src="embed-contrast.js?v=1"></script>\n',
+    '<script src="embed-contrast.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(doc_new,doc_new+'\n'+contrast_new,1)
+
 # Le contrôleur de repli doit rester le dernier wrapper de rendu.
 if collapsed_new not in s:
-    s=s.replace(doc_new,doc_new+'\n'+collapsed_new,1)
+    s=s.replace(contrast_new,contrast_new+'\n'+collapsed_new,1)
 
 old_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();'
 new_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();'
@@ -132,4 +141,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - modale produit fermeture uniquement via Annuler + upload PDF arrière-plan v4')
+print('AB COMMANDES - contraste Yaya + modale produit stricte + upload PDF arrière-plan')
