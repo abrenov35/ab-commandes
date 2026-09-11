@@ -214,12 +214,27 @@ function renderChantiers(){const rows=chantierRows()||'<tr><td colspan="4">Aucun
 function docCount(id){return documents.filter(d=>String(d.commande_id)===String(id)).length}
 function showView(id){$$('.view').forEach(v=>v.classList.remove('active'));const v=$('#'+id);if(v)v.classList.add('active')}
 function matchingOrdersForChantier(chantierId,chantierName){const id=String(chantierId||''),name=normName(chantierName);return orders.filter(o=>(id&&String(o.chantierId||'')===id)||(!id&&name&&normName(o.chantier)===name)||(id&&name&&normName(o.chantier)===name))}
+/* AB_COMMANDES_OVERVIEW_DEDUPE_V1 */
+function overviewNameClean(v){return String(v||'').replace(/^[\s•·▪◦\-–—]+/,'').trim()}
+function overviewNameKey(v){return normName(overviewNameClean(v)).replace(/[^A-Z0-9]+/g,' ').trim()}
 function overviewChantierList(){
-  const byKey=new Map();
-  activeYayaChantiers().forEach(c=>byKey.set('id:'+String(c.id),{id:String(c.id),name:String(c.nom||'').trim()}));
-  orders.forEach(o=>{const id=String(o.chantierId||'');const key=id?'id:'+id:'name:'+normName(o.chantier);if(!byKey.has(key)&&o.chantier)byKey.set(key,{id,name:String(o.chantier||'').trim()})});
+  const byName=new Map();
+  activeYayaChantiers().forEach(c=>{
+    const name=overviewNameClean(c.nom),key=overviewNameKey(name),id=String(c.id||'');
+    if(!key||key.replace(/\s+/g,'')==='ABRENOV35')return;
+    const prev=byName.get(key);
+    if(!prev)byName.set(key,{id,name});
+    else if(!prev.id&&id)prev.id=id;
+  });
+  orders.forEach(o=>{
+    const name=overviewNameClean(o.chantier),key=overviewNameKey(name),id=String(o.chantierId||'');
+    if(!key||key.replace(/\s+/g,'')==='ABRENOV35')return;
+    const prev=byName.get(key);
+    if(!prev)byName.set(key,{id,name});
+    else if(!prev.id&&id)prev.id=id;
+  });
   const q=$('#search').value.trim().toLowerCase(),resp=$('#filterResp').value,st=$('#filterStatus').value;
-  return [...byKey.values()].filter(c=>{
+  return [...byName.values()].filter(c=>{
     const os=matchingOrdersForChantier(c.id,c.name);
     const searchOk=!q||c.name.toLowerCase().includes(q)||os.some(o=>[o.produit,o.fournisseur,o.responsable].join(' ').toLowerCase().includes(q));
     const respOk=!resp||os.some(o=>o.responsable===resp);
