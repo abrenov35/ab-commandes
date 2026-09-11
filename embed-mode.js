@@ -2,7 +2,7 @@
   'use strict';
   const params=new URL(window.location.href).searchParams;
 
-  /* AB_COMMANDES_V35 */
+  /* AB_COMMANDES_V36 */
   const STATUS_SEQUENCE=['choice','todo','ordered','received'];
   const COMMAND_NOTE_COMMAND_ID='__AB_NOTE_COMMANDES__';
   const COMMAND_NOTE_TYPE='Note commandes';
@@ -11,7 +11,7 @@
   const ACTIVE_CHANTIER_NAME='CHANTIER_ACTIF';
 
   const style=document.createElement('style');
-  style.id='ab-commandes-v35-style';
+  style.id='ab-commandes-v36-style';
   style.textContent=`
     @media(max-width:1150px){
       html,body{margin:0!important;padding:0!important}
@@ -35,9 +35,8 @@
       body:not(.ab-embed-mode) .main{padding:7px 8px 12px!important}
     }
     .ab-status-body>.order-row.header{display:none!important}
+    #chantierFiche>.order-row.header,#commandes>.order-row.header{display:none!important}
     #chantierFiche .fiche-kpis .kpi[data-ab-hidden-problem="1"],#abOverviewKpis .ab-kpi-card[data-ab-hidden-problem="1"]{display:none!important}
-    #chantierFiche .fiche-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
-    #abOverviewKpis.ab-kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
     #chantiers .ab-section-title{display:none!important}
     #chantiers .top{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;margin-bottom:12px!important}
     #chantiers .top .title{display:flex!important;align-items:baseline!important;gap:10px!important;flex-wrap:wrap!important}
@@ -65,161 +64,117 @@
 
   function textKey(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase()}
   function escHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-  function switchView(id){
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    const view=document.getElementById(id);if(view)view.classList.add('active');
-  }
+  function switchView(id){document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));const v=document.getElementById(id);if(v)v.classList.add('active')}
   function setNavActive(btn){document.querySelectorAll('.side .nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active')}
+  function clearStatusFilter(){const f=document.getElementById('filterStatus');if(f)f.value=''}
+
+  function makeNavButton(nav,attrs,before){
+    const b=document.createElement('button');b.type='button';Object.entries(attrs||{}).forEach(([k,v])=>b.dataset[k]=v);
+    if(before)nav.insertBefore(b,before);else nav.appendChild(b);return b;
+  }
 
   function installToolbar(){
     const nav=document.querySelector('.side .nav');if(!nav)return;
-    const overview=nav.querySelector('button[data-view="overview"]');
-    const chantiers=nav.querySelector('button[data-view="chantiers"]');
-    const commandes=nav.querySelector('button[data-view="commandes"]');
-    if(overview)overview.textContent="⌂ Vue d'ensemble";
-    if(chantiers){chantiers.textContent='🛠 Chantiers actifs';chantiers.title='Voir les chantiers actifs'}
-    if(commandes){
-      commandes.textContent='📦 Commandes';
-      const old=commandes.onclick;
-      commandes.onclick=function(e){
-        if(old)old.call(this,e);else{setNavActive(commandes);switchView('commandes')}
-        const f=document.getElementById('filterStatus');if(f)f.value='';
-        if(typeof renderAll==='function')renderAll();
-      };
-    }
+    let overview=nav.querySelector('button[data-view="overview"]');
+    if(!overview){overview=makeNavButton(nav,{view:'overview'},nav.firstElementChild);}
+    let chantiers=nav.querySelector('button[data-view="chantiers"]');
+    if(!chantiers){chantiers=makeNavButton(nav,{view:'chantiers'},overview.nextElementSibling);}
+    let commandes=nav.querySelector('button[data-view="commandes"]');
+    if(!commandes){commandes=makeNavButton(nav,{view:'commandes'},chantiers.nextElementSibling);}
+
+    overview.textContent="⌂ Vue d'ensemble";
+    chantiers.textContent='🛠 Chantiers actifs';
+    chantiers.title='Voir les chantiers actifs';
+    commandes.textContent='📦 Commandes';
+
+    overview.onclick=()=>{clearStatusFilter();setNavActive(overview);switchView('overview');if(typeof renderAll==='function')renderAll()};
+    chantiers.onclick=()=>{clearStatusFilter();setNavActive(chantiers);switchView('chantiers');if(typeof renderAll==='function')renderAll()};
+    commandes.onclick=()=>{clearStatusFilter();setNavActive(commandes);switchView('commandes');if(typeof renderAll==='function')renderAll()};
+
     const defs=[['todo','🟠 À commander'],['received','🟢 Reçu'],['choice','🟣 Choix client']];
+    const statusButtons=[];
     defs.forEach(([status,label])=>{
       let b=nav.querySelector(`button[data-ab-status-nav="${status}"]`);
-      if(!b){b=document.createElement('button');b.type='button';b.dataset.abStatusNav=status;nav.appendChild(b)}
+      if(!b){b=document.createElement('button');b.type='button';b.dataset.abStatusNav=status;}
       b.textContent=label;
-      b.onclick=()=>{
-        const f=document.getElementById('filterStatus');if(f)f.value=status;
-        setNavActive(b);switchView('commandes');
-        if(typeof renderAll==='function')renderAll();
-      };
+      b.onclick=()=>{const f=document.getElementById('filterStatus');if(f)f.value=status;setNavActive(b);switchView('commandes');if(typeof renderAll==='function')renderAll()};
+      statusButtons.push(b);
     });
+
+    [overview,chantiers,commandes,...statusButtons].forEach(b=>nav.appendChild(b));
   }
 
   function statusFromText(v){const t=textKey(v);if(t.includes('choix client'))return 'choice';if(t.includes('a commander'))return 'todo';if(t==='commande'||t.includes('commande'))return 'ordered';if(t.includes('recu'))return 'received';if(t.includes('probleme'))return 'problem';return ''}
   function patchStatusSelect(sel){
-    if(!sel||!sel.options)return;
-    const current=String(sel.value||'');
-    const map=new Map([...sel.options].map(o=>[o.value,o]));
-    const problem=map.get('problem');if(problem)problem.remove();
-    STATUS_SEQUENCE.forEach(k=>{const o=map.get(k);if(o)sel.appendChild(o)});
-    if(current&&current!=='problem'&&map.get(current))sel.value=current;else if(current==='problem'&&map.get('todo'))sel.value='todo';
+    if(!sel||!sel.options)return;const current=String(sel.value||'');const map=new Map([...sel.options].map(o=>[o.value,o]));const problem=map.get('problem');if(problem)problem.remove();STATUS_SEQUENCE.forEach(k=>{const o=map.get(k);if(o)sel.appendChild(o)});if(current&&current!=='problem'&&map.get(current))sel.value=current;else if(current==='problem'&&map.get('todo'))sel.value='todo';
   }
   function patchStatuses(){
-    document.querySelectorAll('.ab-status-groups').forEach(group=>{
-      const sections=[...group.querySelectorAll(':scope > .ab-status-section')],byStatus=new Map();
-      sections.forEach(section=>{const key=statusFromText(section.querySelector('.ab-status-heading')?.textContent||'');if(key==='problem'){section.remove();return}if(key)byStatus.set(key,section)});
-      STATUS_SEQUENCE.forEach(k=>{const s=byStatus.get(k);if(s)group.appendChild(s)});
-    });
+    document.querySelectorAll('.ab-status-groups').forEach(group=>{const sections=[...group.querySelectorAll(':scope > .ab-status-section')],byStatus=new Map();sections.forEach(section=>{const key=statusFromText(section.querySelector('.ab-status-heading')?.textContent||'');if(key==='problem'){section.remove();return}if(key)byStatus.set(key,section)});STATUS_SEQUENCE.forEach(k=>{const s=byStatus.get(k);if(s)group.appendChild(s)})});
     document.querySelectorAll('select.status-select,#fStatus,#filterStatus').forEach(patchStatusSelect);
     document.querySelectorAll('#chantierFiche .fiche-kpis .kpi').forEach(card=>{if(textKey(card.textContent).includes('probleme'))card.dataset.abHiddenProblem='1'});
     document.querySelectorAll('#abOverviewKpis .ab-kpi-card').forEach(card=>{if(textKey(card.textContent).includes('probleme'))card.dataset.abHiddenProblem='1'});
-    document.querySelectorAll('.ab-status-body>.order-row.header').forEach(x=>x.remove());
+    document.querySelectorAll('.ab-status-body>.order-row.header,#chantierFiche>.order-row.header,#commandes>.order-row.header').forEach(x=>x.remove());
   }
 
   function commandNoteMarkers(){try{return (Array.isArray(documents)?documents:[]).filter(d=>String(d.commande_id||'')===COMMAND_NOTE_COMMAND_ID||String(d.type||'')===COMMAND_NOTE_TYPE)}catch(e){return []}}
-  function currentCommandNote(){
-    const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim(),name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim(),nk=textKey(name);
-    return commandNoteMarkers().find(d=>{const did=String(d.auteur||'').trim();return (id&&did&&id===did)||(nk&&textKey(d.chantier)===nk)})||null;
-  }
+  function currentCommandNote(){const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim(),name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim(),nk=textKey(name);return commandNoteMarkers().find(d=>{const did=String(d.auteur||'').trim();return(id&&did&&id===did)||(nk&&textKey(d.chantier)===nk)})||null}
   function renderCommandNote(){
-    const list=document.getElementById('ficheOrdersList');if(!list)return;
-    const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim(),name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim();if(!id&&!name)return;
+    const list=document.getElementById('ficheOrdersList');if(!list)return;const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim(),name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim();if(!id&&!name)return;
     let box=document.getElementById('abCommandNote');if(!box){box=document.createElement('section');box.id='abCommandNote';box.className='ab-command-note';list.insertAdjacentElement('afterend',box)}
-    const key=id||textKey(name);if(box.dataset.editing==='1'&&box.dataset.key===key)return;box.dataset.key=key;
-    const marker=currentCommandNote(),note=marker?String(marker.nom_fichier||'').trim():'';
+    const key=id||textKey(name);if(box.dataset.editing==='1'&&box.dataset.key===key)return;box.dataset.key=key;const marker=currentCommandNote(),note=marker?String(marker.nom_fichier||'').trim():'';
     box.innerHTML=`<div class="ab-command-note-title">📝 NOTE COMMANDES</div>${note?`<div class="ab-command-note-text" id="abCommandNoteText">${escHtml(note)}</div><div class="ab-command-note-status">Cliquer sur la note pour la modifier.</div>`:`<button type="button" class="ab-command-note-empty" id="abCommandNoteAdd">+ Ajouter une note</button>`}`;
     const trigger=box.querySelector('#abCommandNoteAdd,#abCommandNoteText');if(trigger)trigger.onclick=()=>editCommandNote(note);
   }
   function editCommandNote(value){
-    const box=document.getElementById('abCommandNote');if(!box)return;box.dataset.editing='1';
-    box.innerHTML=`<div class="ab-command-note-title">📝 NOTE COMMANDES</div><div class="ab-command-note-edit"><textarea id="abCommandNoteInput" placeholder="Ajouter une note utile pour les commandes de ce chantier…">${escHtml(value||'')}</textarea><div class="ab-command-note-actions"><button type="button" class="ab-command-note-cancel" id="abCommandNoteCancel">Annuler</button><button type="button" class="ab-command-note-save" id="abCommandNoteSave">Enregistrer</button></div></div>`;
-    const input=box.querySelector('#abCommandNoteInput');if(input)input.focus();
-    box.querySelector('#abCommandNoteCancel').onclick=()=>{box.dataset.editing='0';renderCommandNote()};
-    box.querySelector('#abCommandNoteSave').onclick=()=>saveCommandNote(input?.value||'');
+    const box=document.getElementById('abCommandNote');if(!box)return;box.dataset.editing='1';box.innerHTML=`<div class="ab-command-note-title">📝 NOTE COMMANDES</div><div class="ab-command-note-edit"><textarea id="abCommandNoteInput" placeholder="Ajouter une note utile pour les commandes de ce chantier…">${escHtml(value||'')}</textarea><div class="ab-command-note-actions"><button type="button" class="ab-command-note-cancel" id="abCommandNoteCancel">Annuler</button><button type="button" class="ab-command-note-save" id="abCommandNoteSave">Enregistrer</button></div></div>`;
+    const input=box.querySelector('#abCommandNoteInput');if(input)input.focus();box.querySelector('#abCommandNoteCancel').onclick=()=>{box.dataset.editing='0';renderCommandNote()};box.querySelector('#abCommandNoteSave').onclick=()=>saveCommandNote(input?.value||'');
   }
   async function saveCommandNote(value){
     const text=String(value||'').trim(),existing=currentCommandNote(),id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim(),name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim(),box=document.getElementById('abCommandNote');
-    try{
-      if(typeof showSaving==='function')showSaving(true,'Enregistrement de la note…');
-      if(!text){if(existing&&typeof post==='function')await post({action:'document_delete',id:existing.id})}
-      else if(typeof post==='function')await post({action:'document_upsert',id:existing?.id||('note-commandes-'+(typeof uid==='function'?uid():Date.now())),commande_id:COMMAND_NOTE_COMMAND_ID,chantier:name,type:COMMAND_NOTE_TYPE,nom_fichier:text,url_pdf:'',source:'AB COMMANDES',date_document:new Date().toISOString().slice(0,10),auteur:id});
-      if(box)box.dataset.editing='0';await new Promise(r=>setTimeout(r,350));if(typeof loadAll==='function')await loadAll(true);else renderCommandNote();
-    }catch(e){alert('Enregistrement de la note impossible : '+(e?.message||e))}finally{if(typeof showSaving==='function')showSaving(false)}
+    try{if(typeof showSaving==='function')showSaving(true,'Enregistrement de la note…');if(!text){if(existing&&typeof post==='function')await post({action:'document_delete',id:existing.id})}else if(typeof post==='function')await post({action:'document_upsert',id:existing?.id||('note-commandes-'+(typeof uid==='function'?uid():Date.now())),commande_id:COMMAND_NOTE_COMMAND_ID,chantier:name,type:COMMAND_NOTE_TYPE,nom_fichier:text,url_pdf:'',source:'AB COMMANDES',date_document:new Date().toISOString().slice(0,10),auteur:id});if(box)box.dataset.editing='0';await new Promise(r=>setTimeout(r,350));if(typeof loadAll==='function')await loadAll(true);else renderCommandNote()}catch(e){alert('Enregistrement de la note impossible : '+(e?.message||e))}finally{if(typeof showSaving==='function')showSaving(false)}
   }
 
   function activeChantierMarkers(){try{return (Array.isArray(documents)?documents:[]).filter(d=>String(d.commande_id||'')===ACTIVE_CHANTIER_COMMAND_ID||(String(d.type||'')===ACTIVE_CHANTIER_TYPE&&String(d.nom_fichier||'')===ACTIVE_CHANTIER_NAME))}catch(e){return []}}
-  function markerMatchesChantier(marker,id,name){const mid=String(marker.auteur||'').trim(),idStr=String(id||'').trim();return (mid&&idStr&&mid===idStr)||Boolean(textKey(name)&&textKey(marker.chantier)===textKey(name))}
-  function existingCardFor(id,name){return [...document.querySelectorAll('#abActiveChantiers .ab-chantier-card')].some(card=>{const btn=card.querySelector('.ab-open-chantier,.ab-open-manual');if(!btn)return false;return (id&&String(btn.dataset.id||'')===String(id))||textKey(btn.dataset.name||'')===textKey(name)})}
+  function markerMatchesChantier(marker,id,name){const mid=String(marker.auteur||'').trim(),idStr=String(id||'').trim();return(mid&&idStr&&mid===idStr)||Boolean(textKey(name)&&textKey(marker.chantier)===textKey(name))}
+  function existingCardFor(id,name){return[...document.querySelectorAll('#abActiveChantiers .ab-chantier-card')].some(card=>{const btn=card.querySelector('.ab-open-chantier,.ab-open-manual');if(!btn)return false;return(id&&String(btn.dataset.id||'')===String(id))||textKey(btn.dataset.name||'')===textKey(name)})}
   function ensureChantiersTop(){
-    const view=document.getElementById('chantiers'),top=view?.querySelector('.top');if(!view||!top)return;
-    const h=top.querySelector('.title h1');if(h)h.textContent='Chantiers actifs';
-    const p=top.querySelector('.title p');if(p)p.textContent='Chantiers ouverts pour le suivi des commandes';
-    let actions=top.querySelector('.ab-chantiers-actions');if(!actions){actions=document.createElement('div');actions.className='ab-chantiers-actions';top.appendChild(actions)}
-    const archive=top.querySelector('#abArchivesToggle');
-    let openBtn=document.getElementById('abOpenChantierBlock');if(!openBtn){openBtn=document.createElement('button');openBtn.id='abOpenChantierBlock';openBtn.className='btn ab-open-block-btn';openBtn.textContent='+ Ouvrir un chantier';openBtn.onclick=toggleOpenChantierPanel;actions.appendChild(openBtn)}
-    if(archive&&archive.parentElement!==actions)actions.appendChild(archive);
-    ensureOpenChantierPanel(top);
+    const view=document.getElementById('chantiers'),top=view?.querySelector('.top');if(!view||!top)return;const h=top.querySelector('.title h1');if(h)h.textContent='Chantiers actifs';const p=top.querySelector('.title p');if(p)p.textContent='Chantiers ouverts pour le suivi des commandes';
+    let actions=top.querySelector('.ab-chantiers-actions');if(!actions){actions=document.createElement('div');actions.className='ab-chantiers-actions';top.appendChild(actions)}const archive=top.querySelector('#abArchivesToggle');let openBtn=document.getElementById('abOpenChantierBlock');if(!openBtn){openBtn=document.createElement('button');openBtn.id='abOpenChantierBlock';openBtn.className='btn ab-open-block-btn';openBtn.textContent='+ Ouvrir un chantier';openBtn.onclick=toggleOpenChantierPanel;actions.appendChild(openBtn)}if(archive&&archive.parentElement!==actions)actions.appendChild(archive);ensureOpenChantierPanel(top);
   }
-  function ensureOpenChantierPanel(top){
-    let panel=document.getElementById('abOpenChantierPanel');if(panel)return panel;
-    panel=document.createElement('div');panel.id='abOpenChantierPanel';panel.className='ab-open-panel';panel.innerHTML='<select id="abOpenChantierSelect"><option value="">Choisir un chantier Yaya…</option></select><button type="button" class="btn" id="abOpenChantierConfirm">Créer le pavé</button><button type="button" class="btn secondary" id="abOpenChantierCancel">Annuler</button>';
-    top.insertAdjacentElement('afterend',panel);panel.querySelector('#abOpenChantierConfirm').onclick=createActiveChantierBlock;panel.querySelector('#abOpenChantierCancel').onclick=()=>panel.classList.remove('show');return panel;
-  }
+  function ensureOpenChantierPanel(top){let panel=document.getElementById('abOpenChantierPanel');if(panel)return panel;panel=document.createElement('div');panel.id='abOpenChantierPanel';panel.className='ab-open-panel';panel.innerHTML='<select id="abOpenChantierSelect"><option value="">Choisir un chantier Yaya…</option></select><button type="button" class="btn" id="abOpenChantierConfirm">Créer le pavé</button><button type="button" class="btn secondary" id="abOpenChantierCancel">Annuler</button>';top.insertAdjacentElement('afterend',panel);panel.querySelector('#abOpenChantierConfirm').onclick=createActiveChantierBlock;panel.querySelector('#abOpenChantierCancel').onclick=()=>panel.classList.remove('show');return panel}
   async function toggleOpenChantierPanel(){
-    const panel=document.getElementById('abOpenChantierPanel');if(!panel)return;const show=!panel.classList.contains('show');panel.classList.toggle('show',show);if(!show)return;
-    try{if((!Array.isArray(yayaChantiers)||!yayaChantiers.length)&&typeof loadYayaChantiers==='function')await loadYayaChantiers(true)}catch(e){}
-    const select=document.getElementById('abOpenChantierSelect');if(!select)return;const markers=activeChantierMarkers();
-    const options=(Array.isArray(yayaChantiers)?yayaChantiers:[]).filter(c=>{const id=String(c.id||''),name=String(c.nom||'').trim();return name&&!existingCardFor(id,name)&&!markers.some(m=>markerMatchesChantier(m,id,name))}).sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
-    select.innerHTML='<option value="">Choisir un chantier Yaya…</option>'+options.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.nom)}</option>`).join('');
+    const panel=document.getElementById('abOpenChantierPanel');if(!panel)return;const show=!panel.classList.contains('show');panel.classList.toggle('show',show);if(!show)return;try{if((!Array.isArray(yayaChantiers)||!yayaChantiers.length)&&typeof loadYayaChantiers==='function')await loadYayaChantiers(true)}catch(e){}
+    const select=document.getElementById('abOpenChantierSelect');if(!select)return;const markers=activeChantierMarkers();const options=(Array.isArray(yayaChantiers)?yayaChantiers:[]).filter(c=>{const id=String(c.id||''),name=String(c.nom||'').trim();return name&&!existingCardFor(id,name)&&!markers.some(m=>markerMatchesChantier(m,id,name))}).sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));select.innerHTML='<option value="">Choisir un chantier Yaya…</option>'+options.map(c=>`<option value="${escHtml(c.id)}">${escHtml(c.nom)}</option>`).join('');
   }
   async function createActiveChantierBlock(){
     const select=document.getElementById('abOpenChantierSelect');if(!select?.value){alert('Choisis un chantier.');return}const yc=(Array.isArray(yayaChantiers)?yayaChantiers:[]).find(c=>String(c.id)===String(select.value));if(!yc)return;const name=String(yc.nom||'').trim();
-    try{if(typeof showSaving==='function')showSaving(true,'Ouverture du chantier…');await post({action:'document_upsert',id:'active-'+(typeof uid==='function'?uid():Date.now()),commande_id:ACTIVE_CHANTIER_COMMAND_ID,chantier:name,type:ACTIVE_CHANTIER_TYPE,nom_fichier:ACTIVE_CHANTIER_NAME,url_pdf:'',source:'AB COMMANDES',date_document:new Date().toISOString().slice(0,10),auteur:String(yc.id||'')});await new Promise(r=>setTimeout(r,350));if(typeof loadAll==='function')await loadAll(true);document.getElementById('abOpenChantierPanel')?.classList.remove('show');applyAll();if(typeof openChantierFiche==='function')openChantierFiche(String(yc.id||''),name)}catch(e){alert('Impossible d’ouvrir le chantier : '+(e?.message||e))}finally{if(typeof showSaving==='function')showSaving(false)}
+    try{if(typeof showSaving==='function')showSaving(true,'Ouverture du chantier…');await post({action:'document_upsert',id:'active-'+(typeof uid==='function'?uid():Date.now()),commande_id:ACTIVE_CHANTIER_COMMAND_ID,chantier:name,type:ACTIVE_CHANTIER_TYPE,nom_fichier:ACTIVE_CHANTIER_NAME,url_pdf:'',source:'AB COMMANDES',date_document:new Date().toISOString().slice(0,10),auteur:String(yc.id||'')});await new Promise(r=>setTimeout(r,350));if(typeof loadAll==='function')await loadAll(true);document.getElementById('abOpenChantierPanel')?.classList.remove('show');applyAll()}catch(e){alert('Impossible d’ouvrir le chantier : '+(e?.message||e))}finally{if(typeof showSaving==='function')showSaving(false)}
   }
   function renderManualActiveCards(){
-    const host=document.getElementById('abActiveChantiers');if(!host)return;
-    activeChantierMarkers().forEach(m=>{const id=String(m.auteur||''),name=String(m.chantier||'').trim();if(!name||existingCardFor(id,name))return;const card=document.createElement('article');card.className='card ab-chantier-card';card.innerHTML=`<div class="ab-chantier-top"><div><button class="ab-chantier-name ab-open-manual" data-id="${escHtml(id)}" data-name="${escHtml(name)}">${escHtml(name)}</button><div class="ab-chantier-meta">0 produit</div></div></div><div class="ab-manual-empty">Aucun produit enregistré pour ce chantier.</div><div class="ab-card-actions"><button class="ab-btn-small primary ab-open-manual" data-id="${escHtml(id)}" data-name="${escHtml(name)}">Ouvrir</button></div>`;host.appendChild(card)});
-    host.querySelectorAll('.ab-open-manual').forEach(b=>b.onclick=()=>{if(typeof openChantierFiche==='function')openChantierFiche(b.dataset.id,b.dataset.name)});
+    const host=document.getElementById('abActiveChantiers');if(!host)return;activeChantierMarkers().forEach(m=>{const id=String(m.auteur||''),name=String(m.chantier||'').trim();if(!name||existingCardFor(id,name))return;const card=document.createElement('article');card.className='card ab-chantier-card';card.innerHTML=`<div class="ab-chantier-top"><div><button class="ab-chantier-name ab-open-manual" data-id="${escHtml(id)}" data-name="${escHtml(name)}">${escHtml(name)}</button><div class="ab-chantier-meta">0 produit</div></div></div><div class="ab-manual-empty">Aucun produit enregistré pour ce chantier.</div><div class="ab-card-actions"><button class="ab-btn-small primary ab-open-manual" data-id="${escHtml(id)}" data-name="${escHtml(name)}">Ouvrir</button></div>`;host.appendChild(card)});host.querySelectorAll('.ab-open-manual').forEach(b=>b.onclick=()=>{if(typeof openChantierFiche==='function')openChantierFiche(b.dataset.id,b.dataset.name)});
   }
 
-  function patchCommandesTitle(){
-    const v=document.getElementById('commandes');if(!v)return;const h=v.querySelector('.title h1');if(h)h.textContent='Commandes';const p=v.querySelector('.title p');if(p)p.textContent='Toutes les commandes, avec accès rapide par statut';
-  }
-  function applyAll(){
-    try{installToolbar();patchStatuses();renderCommandNote();ensureChantiersTop();renderManualActiveCards();patchCommandesTitle()}catch(e){console.error('AB COMMANDES V35:',e)}
-  }
+  function patchCommandesTitle(){const v=document.getElementById('commandes');if(!v)return;const h=v.querySelector('.title h1');if(h)h.textContent='Commandes';const p=v.querySelector('.title p');if(p)p.textContent='Toutes les commandes, avec accès rapide par statut'}
+  function applyAll(){try{installToolbar();patchStatuses();renderCommandNote();ensureChantiersTop();renderManualActiveCards();patchCommandesTitle()}catch(e){console.error('AB COMMANDES V36:',e)}}
 
-  try{if(typeof renderAll==='function'&&!renderAll.__abV35){const original=renderAll;const wrapped=function(){const r=original.apply(this,arguments);requestAnimationFrame(applyAll);return r};wrapped.__abV35=true;renderAll=wrapped;window.renderAll=wrapped}}catch(e){}
-  try{if(typeof openModal==='function'&&!openModal.__abV35){const original=openModal;const wrapped=async function(){const r=await original.apply(this,arguments);patchStatusSelect(document.getElementById('fStatus'));return r};wrapped.__abV35=true;openModal=wrapped;window.openModal=wrapped}}catch(e){}
+  try{if(typeof renderAll==='function'&&!renderAll.__abV36){const original=renderAll;const wrapped=function(){const r=original.apply(this,arguments);requestAnimationFrame(applyAll);return r};wrapped.__abV36=true;renderAll=wrapped;window.renderAll=wrapped}}catch(e){}
+  try{if(typeof openModal==='function'&&!openModal.__abV36){const original=openModal;const wrapped=async function(){const r=await original.apply(this,arguments);patchStatusSelect(document.getElementById('fStatus'));return r};wrapped.__abV36=true;openModal=wrapped;window.openModal=wrapped}}catch(e){}
 
-  installToolbar();requestAnimationFrame(applyAll);setTimeout(applyAll,400);setTimeout(applyAll,1400);
+  installToolbar();requestAnimationFrame(applyAll);[200,500,1200,2500].forEach(t=>setTimeout(applyAll,t));
+  const nav=document.querySelector('.side .nav');if(nav)new MutationObserver(()=>requestAnimationFrame(installToolbar)).observe(nav,{childList:true,subtree:true,characterData:true});
 
   if(params.get('embed')!=='1')return;
-
-  const DATA_CACHE_KEY='AB_COMMANDES_EMBED_CACHE_V2',CACHE_MAX_AGE_MS=30*24*60*60*1000;
   document.documentElement.classList.add('ab-embed-mode');document.body.classList.add('ab-embed-mode');
   const embedStyle=document.createElement('style');embedStyle.id='ab-commandes-embed-style';embedStyle.textContent=`
     html.ab-embed-mode,body.ab-embed-mode{background:#fff!important;min-height:0!important;overflow:hidden!important}
     body.ab-embed-mode .app{display:block!important;min-height:0!important}body.ab-embed-mode .side{display:none!important}
     body.ab-embed-mode .main{padding:8px 14px 8px!important;max-width:none!important;margin:0!important}
     body.ab-embed-mode #chantierFiche{margin:0!important;padding-bottom:0!important}body.ab-embed-mode .fiche-back{display:none!important}
-    body.ab-embed-mode #chantierFiche .yaya,body.ab-embed-mode #chantierFiche .top,body.ab-embed-mode #chantierFiche .title,body.ab-embed-mode #chantierFiche .fiche-sub,body.ab-embed-mode #chantierFiche .order-row.header{display:none!important}
-    body.ab-embed-mode .fiche-kpis{margin:0 0 14px!important;gap:7px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
-    body.ab-embed-mode .fiche-kpis .kpi{min-width:0!important;padding:11px 12px!important;gap:8px!important;box-shadow:none!important}
-    body.ab-embed-mode .fiche-kpis .status-dot{width:21px!important;height:21px!important;flex:0 0 21px!important}body.ab-embed-mode .fiche-kpis .kpi strong{font-size:22px!important;line-height:1!important}body.ab-embed-mode .fiche-kpis .kpi span{font-size:11px!important;line-height:1.15!important}
+    body.ab-embed-mode #chantierFiche .yaya,body.ab-embed-mode #chantierFiche .top,body.ab-embed-mode #chantierFiche .title,body.ab-embed-mode #chantierFiche .fiche-sub,body.ab-embed-mode #chantierFiche>.order-row.header{display:none!important}
     body.ab-embed-mode .toolbar{margin:12px 0 9px!important}body.ab-embed-mode #chantierFiche .toolbar h2{display:none!important}
     body.ab-embed-mode .order-row{box-shadow:none!important}body.ab-embed-mode .empty{margin-bottom:0!important;padding:18px!important}body.ab-embed-mode .ab-status-groups{gap:8px!important}body.ab-embed-mode .ab-status-section summary{padding:10px 12px!important}body.ab-embed-mode .ab-status-body{padding:0 8px 8px!important}
   `;document.head.appendChild(embedStyle);
-  function saveSnapshot(){try{if(typeof orders==='undefined'||!Array.isArray(orders))return;localStorage.setItem(DATA_CACHE_KEY,JSON.stringify({version:2,savedAt:Date.now(),orders,documents:(typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]}))}catch(e){}}
-  function hydrateSnapshot(){try{const raw=localStorage.getItem(DATA_CACHE_KEY);if(!raw)return false;const c=JSON.parse(raw);if(!c||!Array.isArray(c.orders))return false;if(c.savedAt&&Date.now()-Number(c.savedAt)>CACHE_MAX_AGE_MS){localStorage.removeItem(DATA_CACHE_KEY);return false}orders=c.orders.map(o=>{try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}});documents=Array.isArray(c.documents)?c.documents:[];if(typeof renderAll==='function')renderAll();if(typeof tryOpenDeepLink==='function')tryOpenDeepLink();return true}catch(e){return false}}
-  try{if(typeof renderAll==='function'){const original=renderAll;renderAll=function(){const r=original.apply(this,arguments);saveSnapshot();return r}}}catch(e){}
-  hydrateSnapshot();
   function sendHeight(){try{const h=Math.max(120,Math.ceil(Math.max(document.body.scrollHeight||0,document.documentElement.scrollHeight||0))+2);window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:h},'*')}catch(e){}}
   const ro=new ResizeObserver(()=>requestAnimationFrame(sendHeight));ro.observe(document.documentElement);ro.observe(document.body);window.addEventListener('load',sendHeight);window.addEventListener('resize',sendHeight);new MutationObserver(()=>requestAnimationFrame(sendHeight)).observe(document.body,{childList:true,subtree:true,attributes:true});[50,180,500,1200,2200].forEach(t=>setTimeout(sendHeight,t));
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='3.3';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='3.4';
 })();
