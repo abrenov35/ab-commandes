@@ -1,0 +1,29 @@
+name: Lien direct chantier depuis Yaya
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-yaya-deeplink.yml'
+      - 'tools/install_yaya_deeplink.py'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer le deep link chantier
+        run: python tools/install_yaya_deeplink.py
+      - name: Publier
+        run: |
+          if git diff --quiet; then
+            echo "Aucun changement"
+            exit 0
+          fi
+          git config user.name "AB COMMANDES automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "AB COMMANDES V26 - lien direct chantier Yaya"
+          git push
