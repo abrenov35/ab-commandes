@@ -78,14 +78,14 @@
     html.ab-embed-mode,body.ab-embed-mode{background:#fff!important;min-height:0!important;overflow:hidden!important}
     body.ab-embed-mode .app{display:block!important;min-height:0!important}
     body.ab-embed-mode .side{display:none!important}
-    body.ab-embed-mode .main{padding:12px 14px 8px!important;max-width:none!important;margin:0!important}
+    body.ab-embed-mode .main{padding:8px 14px 8px!important;max-width:none!important;margin:0!important}
     body.ab-embed-mode #chantierFiche{margin:0!important;padding-bottom:0!important}
     body.ab-embed-mode .fiche-back{display:none!important}
     body.ab-embed-mode #chantierFiche .yaya{display:none!important}
-    body.ab-embed-mode #chantierFiche .top{margin:0 0 8px!important}
-    body.ab-embed-mode #chantierFiche .title h1{font-size:23px!important}
-    body.ab-embed-mode #chantierFiche .fiche-sub{margin-top:4px!important}
-    body.ab-embed-mode .fiche-kpis{margin:12px 0 14px!important;gap:7px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+    body.ab-embed-mode #chantierFiche .top{display:none!important}
+    body.ab-embed-mode #chantierFiche .title{display:none!important}
+    body.ab-embed-mode #chantierFiche .fiche-sub{display:none!important}
+    body.ab-embed-mode .fiche-kpis{margin:0 0 14px!important;gap:7px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
     body.ab-embed-mode .fiche-kpis .kpi{min-width:0!important;padding:11px 12px!important;gap:8px!important;box-shadow:none!important}
     body.ab-embed-mode .fiche-kpis .status-dot{width:21px!important;height:21px!important;flex:0 0 21px!important}
     body.ab-embed-mode .fiche-kpis .kpi strong{font-size:22px!important;line-height:1!important}
@@ -98,8 +98,7 @@
     body.ab-embed-mode .ab-status-section summary{padding:10px 12px!important}
     body.ab-embed-mode .ab-status-body{padding:0 8px 8px!important}
     @media(max-width:760px){
-      body.ab-embed-mode .main{padding:9px 9px 4px!important}
-      body.ab-embed-mode #chantierFiche .title h1{font-size:20px!important}
+      body.ab-embed-mode .main{padding:7px 9px 4px!important}
       body.ab-embed-mode .fiche-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
       body.ab-embed-mode .fiche-kpis .kpi{padding:8px 6px!important;gap:5px!important}
       body.ab-embed-mode .fiche-kpis .status-dot{width:15px!important;height:15px!important;flex-basis:15px!important}
@@ -188,5 +187,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.3';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.4';
 })();
