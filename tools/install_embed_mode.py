@@ -11,7 +11,7 @@ choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-price-lock.js?v=3"></script>'
-doc_new='<script src="doc-modal-simple.js?v=3"></script>'
+doc_new='<script src="doc-modal-simple.js?v=4"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -90,7 +90,7 @@ for old in (
         break
 if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
-# Modale produit uniquement : prix optionnel + chantier figé + responsables sans emoji + clic extérieur neutralisé.
+# Modale produit : prix optionnel + chantier figé + responsables sans emoji + clic extérieur neutralisé.
 for old in (
     '<script src="modal-price-lock.js?v=1"></script>\n',
     '<script src="modal-price-lock.js?v=2"></script>\n',
@@ -102,14 +102,16 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(detail_new,detail_new+'\n'+price_new,1)
 
-# Conserver le script document existant sans le modifier dans cette étape.
+# Upload PDF v4 : fermeture immédiate, traitement arrière-plan, modale Upload failed en cas d'échec.
 for old in (
     '<script src="doc-modal-simple.js?v=1"></script>\n',
     '<script src="doc-modal-simple.js?v=2"></script>\n',
     '<script src="doc-modal-simple.js?v=3"></script>\n',
+    '<script src="doc-modal-simple.js?v=4"></script>\n',
     '<script src="doc-modal-simple.js?v=1"></script>',
     '<script src="doc-modal-simple.js?v=2"></script>',
     '<script src="doc-modal-simple.js?v=3"></script>',
+    '<script src="doc-modal-simple.js?v=4"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
@@ -126,4 +128,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - modale produit v3 chargée')
+print('AB COMMANDES - upload PDF arrière-plan v4 chargé')
