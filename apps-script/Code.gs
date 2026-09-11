@@ -2,9 +2,10 @@ const SPREADSHEET_ID = '1oaS7qbqgMPpL4uOmZZ1WveTAVsgTJln09lsTw111YeY';
 const COMMANDES_SHEET = 'COMMANDES';
 const DOCUMENTS_SHEET = 'DOCUMENTS';
 
+/* prix est ajouté EN FIN de structure pour ne pas décaler les colonnes existantes du Sheet. */
 const COMMAND_HEADERS = [
   'id','chantier','produit','qte','fournisseur','responsable','date','start','status',
-  'qte_commandee','qte_recue','date_commande','date_livraison','notes','created_at','updated_at'
+  'qte_commandee','qte_recue','date_commande','date_livraison','notes','created_at','updated_at','prix'
 ];
 
 const DOCUMENT_HEADERS = [
@@ -146,7 +147,8 @@ function normalizeCommande_(d) {
     date_livraison: String(d.date_livraison || ''),
     notes: String(d.notes || ''),
     created_at: String(d.created_at || now),
-    updated_at: now
+    updated_at: now,
+    prix: String(d.prix || '').trim()
   };
 }
 
