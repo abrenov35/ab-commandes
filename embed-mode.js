@@ -2,9 +2,9 @@
   'use strict';
   const params=new URL(window.location.href).searchParams;
 
-  /* AB_COMMANDES_TOPBAR_V32 */
+  /* AB_COMMANDES_TOPBAR_V33 */
   const shellStyle=document.createElement('style');
-  shellStyle.id='ab-commandes-topbar-v32-style';
+  shellStyle.id='ab-commandes-topbar-v33-style';
   shellStyle.textContent=`
     @media(max-width:1150px){
       html,body{margin:0!important;padding:0!important}
@@ -139,6 +139,219 @@
     window.addEventListener('DOMContentLoaded',installOpenChantierButton,{once:true});
   }
 
+  /* AB_COMMANDES_FICHE_V33 */
+  const COMMAND_NOTE_COMMAND_ID='__AB_NOTE_COMMANDES__';
+  const COMMAND_NOTE_TYPE='Note commandes';
+  const COMMAND_NOTE_SOURCE='AB COMMANDES';
+  const STATUS_SEQUENCE=['choice','todo','ordered','received'];
+
+  const fichePatchStyle=document.createElement('style');
+  fichePatchStyle.id='ab-commandes-fiche-v33-style';
+  fichePatchStyle.textContent=`
+    .ab-command-note{margin-top:14px;background:#f7f9fc;border:1px solid #ccd6e3;border-radius:11px;padding:12px}
+    .ab-command-note-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:900;color:#233a5a;margin-bottom:8px;text-transform:uppercase;letter-spacing:.02em}
+    .ab-command-note-empty{width:100%;border:1px dashed #95a9c1;background:#fff;border-radius:8px;min-height:38px;padding:9px 12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#28476e;cursor:pointer}
+    .ab-command-note-text{white-space:pre-wrap;background:#fff;border:1px solid #dce3eb;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.45;color:#2e405a;cursor:pointer}
+    .ab-command-note-edit{display:grid;gap:8px}
+    .ab-command-note-edit textarea{width:100%;min-height:82px;resize:vertical;border:1px solid #b9c7d8;border-radius:8px;padding:10px 11px;background:#fff;color:#1e304a;outline:none}
+    .ab-command-note-edit textarea:focus{border-color:#6e9be0;box-shadow:0 0 0 3px rgba(47,111,237,.10)}
+    .ab-command-note-actions{display:flex;justify-content:flex-end;gap:7px}
+    .ab-command-note-actions button{border-radius:7px;padding:7px 11px;font-size:12px;font-weight:800;cursor:pointer}
+    .ab-command-note-cancel{background:#fff;border:1px solid #d5dde7;color:#44546b}
+    .ab-command-note-save{background:#162d49;border:1px solid #162d49;color:#fff}
+    .ab-command-note-status{font-size:11px;color:#7b889b;margin-top:6px}
+    #chantierFiche .fiche-kpis .kpi[data-ab-hidden-problem="1"],
+    #abOverviewKpis .ab-kpi-card[data-ab-hidden-problem="1"]{display:none!important}
+    #chantierFiche .fiche-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+    #abOverviewKpis.ab-kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+    @media(max-width:620px){
+      #chantierFiche .fiche-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+      #abOverviewKpis.ab-kpi-strip{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+      .ab-command-note{padding:10px;margin-top:10px}
+    }
+  `;
+  document.head.appendChild(fichePatchStyle);
+
+  function textKey(v){
+    return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
+  }
+
+  function statusFromText(v){
+    const t=textKey(v);
+    if(t.includes('choix client'))return 'choice';
+    if(t.includes('a commander'))return 'todo';
+    if(t==='commande'||t.includes('commande'))return 'ordered';
+    if(t.includes('recu'))return 'received';
+    if(t.includes('probleme'))return 'problem';
+    return '';
+  }
+
+  function patchStatusSelect(sel){
+    if(!sel||!sel.options)return;
+    const current=String(sel.value||'');
+    const map=new Map([...sel.options].map(o=>[o.value,o]));
+    const problem=map.get('problem');if(problem)problem.remove();
+    STATUS_SEQUENCE.forEach(k=>{const o=map.get(k);if(o)sel.appendChild(o)});
+    if(current&&current!=='problem'&&map.get(current))sel.value=current;
+    else if(current==='problem'&&map.get('todo'))sel.value='todo';
+  }
+
+  function patchStatuses(){
+    document.querySelectorAll('.ab-status-groups').forEach(group=>{
+      const sections=[...group.querySelectorAll(':scope > .ab-status-section')];
+      const byStatus=new Map();
+      sections.forEach(section=>{
+        const heading=section.querySelector('.ab-status-heading');
+        const key=statusFromText(heading?heading.textContent:'');
+        if(key==='problem'){section.remove();return}
+        if(key)byStatus.set(key,section);
+      });
+      STATUS_SEQUENCE.forEach(k=>{const s=byStatus.get(k);if(s)group.appendChild(s)});
+    });
+
+    document.querySelectorAll('select.status-select,#fStatus,#filterStatus').forEach(patchStatusSelect);
+
+    document.querySelectorAll('#chantierFiche .fiche-kpis .kpi').forEach(card=>{
+      const label=textKey(card.textContent);
+      if(label.includes('probleme'))card.dataset.abHiddenProblem='1';
+    });
+    document.querySelectorAll('#abOverviewKpis .ab-kpi-card').forEach(card=>{
+      const label=textKey(card.textContent);
+      if(label.includes('probleme'))card.dataset.abHiddenProblem='1';
+    });
+  }
+
+  function commandNoteMarkers(){
+    try{
+      return (Array.isArray(documents)?documents:[]).filter(d=>
+        String(d.commande_id||'')===COMMAND_NOTE_COMMAND_ID || String(d.type||'')===COMMAND_NOTE_TYPE
+      );
+    }catch(e){return []}
+  }
+
+  function currentCommandNote(){
+    const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim();
+    const name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim();
+    const nk=textKey(name);
+    return commandNoteMarkers().find(d=>{
+      const did=String(d.auteur||'').trim();
+      if(id&&did&&id===did)return true;
+      return !!nk&&textKey(d.chantier)===nk;
+    })||null;
+  }
+
+  function escNote(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  }
+
+  function commandNoteText(marker){return marker?String(marker.nom_fichier||'').trim():''}
+
+  function renderCommandNote(){
+    const fiche=document.getElementById('chantierFiche');
+    const list=document.getElementById('ficheOrdersList');
+    if(!fiche||!list)return;
+    const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim();
+    const name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim();
+    if(!id&&!name)return;
+    let box=document.getElementById('abCommandNote');
+    if(!box){
+      box=document.createElement('section');
+      box.id='abCommandNote';
+      box.className='ab-command-note';
+      list.insertAdjacentElement('afterend',box);
+    }
+    const key=(id||textKey(name));
+    if(box.dataset.editing==='1'&&box.dataset.key===key)return;
+    box.dataset.key=key;
+    const marker=currentCommandNote();
+    const note=commandNoteText(marker);
+    box.innerHTML=`<div class="ab-command-note-title">📝 NOTE COMMANDES</div>${note
+      ?`<div class="ab-command-note-text" id="abCommandNoteText" title="Cliquer pour modifier">${escNote(note)}</div><div class="ab-command-note-status">Cliquer sur la note pour la modifier.</div>`
+      :`<button type="button" class="ab-command-note-empty" id="abCommandNoteAdd">+ Ajouter une note</button>`}`;
+    const trigger=box.querySelector('#abCommandNoteAdd,#abCommandNoteText');
+    if(trigger)trigger.onclick=()=>editCommandNote(note);
+  }
+
+  function editCommandNote(value){
+    const box=document.getElementById('abCommandNote');if(!box)return;
+    box.dataset.editing='1';
+    box.innerHTML=`<div class="ab-command-note-title">📝 NOTE COMMANDES</div><div class="ab-command-note-edit"><textarea id="abCommandNoteInput" placeholder="Ajouter une note utile pour les commandes de ce chantier…">${escNote(value||'')}</textarea><div class="ab-command-note-actions"><button type="button" class="ab-command-note-cancel" id="abCommandNoteCancel">Annuler</button><button type="button" class="ab-command-note-save" id="abCommandNoteSave">Enregistrer</button></div></div>`;
+    const input=box.querySelector('#abCommandNoteInput');if(input){input.focus();input.setSelectionRange(input.value.length,input.value.length)}
+    box.querySelector('#abCommandNoteCancel').onclick=()=>{box.dataset.editing='0';renderCommandNote()};
+    box.querySelector('#abCommandNoteSave').onclick=()=>saveCommandNote(input?input.value:'');
+  }
+
+  async function saveCommandNote(value){
+    const text=String(value||'').trim();
+    const existing=currentCommandNote();
+    const id=String(typeof selectedChantierId!=='undefined'?selectedChantierId:'').trim();
+    const name=String(typeof selectedChantierName!=='undefined'?selectedChantierName:'').trim();
+    const box=document.getElementById('abCommandNote');
+    try{
+      if(typeof showSaving==='function')showSaving(true,'Enregistrement de la note…');
+      if(!text){
+        if(existing&&typeof post==='function')await post({action:'document_delete',id:existing.id});
+      }else if(typeof post==='function'){
+        await post({
+          action:'document_upsert',
+          id:existing?.id||('note-commandes-'+(typeof uid==='function'?uid():Date.now())),
+          commande_id:COMMAND_NOTE_COMMAND_ID,
+          chantier:name,
+          type:COMMAND_NOTE_TYPE,
+          nom_fichier:text,
+          url_pdf:'',
+          source:COMMAND_NOTE_SOURCE,
+          date_document:new Date().toISOString().slice(0,10),
+          auteur:id
+        });
+      }
+      if(box)box.dataset.editing='0';
+      await new Promise(r=>setTimeout(r,450));
+      if(typeof loadAll==='function')await loadAll(true);
+      else renderCommandNote();
+    }catch(e){
+      alert('Enregistrement de la note impossible : '+(e&&e.message?e.message:e));
+    }finally{
+      if(typeof showSaving==='function')showSaving(false);
+    }
+  }
+
+  function applyFichePatch(){
+    try{patchStatuses();renderCommandNote()}catch(e){console.error('AB COMMANDES fiche V33:',e)}
+  }
+
+  try{
+    if(typeof renderAll==='function'&&!renderAll.__abFicheV33){
+      const originalRenderAllV33=renderAll;
+      const wrappedRenderAll=function(){
+        const result=originalRenderAllV33.apply(this,arguments);
+        requestAnimationFrame(applyFichePatch);
+        return result;
+      };
+      wrappedRenderAll.__abFicheV33=true;
+      renderAll=wrappedRenderAll;
+      window.renderAll=wrappedRenderAll;
+    }
+  }catch(e){}
+
+  try{
+    if(typeof openModal==='function'&&!openModal.__abFicheV33){
+      const originalOpenModalV33=openModal;
+      const wrappedOpenModal=async function(){
+        const result=await originalOpenModalV33.apply(this,arguments);
+        patchStatusSelect(document.getElementById('fStatus'));
+        return result;
+      };
+      wrappedOpenModal.__abFicheV33=true;
+      openModal=wrappedOpenModal;
+      window.openModal=wrappedOpenModal;
+    }
+  }catch(e){}
+
+  requestAnimationFrame(applyFichePatch);
+  setTimeout(applyFichePatch,400);
+  setTimeout(applyFichePatch,1400);
+
   if(params.get('embed')!=='1')return;
 
   const DATA_CACHE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
@@ -161,7 +374,7 @@
     body.ab-embed-mode #chantierFiche .title{display:none!important}
     body.ab-embed-mode #chantierFiche .fiche-sub{display:none!important}
     body.ab-embed-mode #chantierFiche .order-row.header{display:none!important}
-    body.ab-embed-mode .fiche-kpis{margin:0 0 14px!important;gap:7px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+    body.ab-embed-mode .fiche-kpis{margin:0 0 14px!important;gap:7px!important;grid-template-columns:repeat(3,minmax(0,1fr))!important}
     body.ab-embed-mode .fiche-kpis .kpi{min-width:0!important;padding:11px 12px!important;gap:8px!important;box-shadow:none!important}
     body.ab-embed-mode .fiche-kpis .status-dot{width:21px!important;height:21px!important;flex:0 0 21px!important}
     body.ab-embed-mode .fiche-kpis .kpi strong{font-size:22px!important;line-height:1!important}
@@ -176,7 +389,7 @@
     body.ab-embed-mode .ab-status-body{padding:0 8px 8px!important}
     @media(max-width:760px){
       body.ab-embed-mode .main{padding:7px 9px 4px!important}
-      body.ab-embed-mode .fiche-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}
+      body.ab-embed-mode .fiche-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}
       body.ab-embed-mode .fiche-kpis .kpi{padding:8px 6px!important;gap:5px!important}
       body.ab-embed-mode .fiche-kpis .status-dot{width:15px!important;height:15px!important;flex-basis:15px!important}
       body.ab-embed-mode .fiche-kpis .kpi strong{font-size:18px!important}
@@ -239,5 +452,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='3.0';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='3.1';
 })();
