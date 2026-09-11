@@ -1,6 +1,69 @@
 (function(){
   'use strict';
   const params=new URL(window.location.href).searchParams;
+
+  /* AB_COMMANDES_TOPBAR_V29 */
+  const shellStyle=document.createElement('style');
+  shellStyle.id='ab-commandes-topbar-v29-style';
+  shellStyle.textContent=`
+    @media(max-width:1150px){
+      body:not(.ab-embed-mode) .app{display:block!important;min-height:0!important}
+      body:not(.ab-embed-mode) .side{
+        height:56px!important;
+        min-height:56px!important;
+        max-height:56px!important;
+        padding:0 12px!important;
+        position:sticky!important;
+        top:0!important;
+        z-index:40!important;
+        display:block!important;
+        overflow:hidden!important;
+        background:var(--navy)!important;
+        border:0!important;
+        border-bottom:1px solid rgba(255,255,255,.12)!important;
+        box-shadow:0 4px 16px rgba(20,33,61,.12)!important;
+      }
+      body:not(.ab-embed-mode) .side .brand,
+      body:not(.ab-embed-mode) .side .sync{display:none!important}
+      body:not(.ab-embed-mode) .side .nav{
+        height:56px!important;
+        display:flex!important;
+        align-items:center!important;
+        gap:6px!important;
+        overflow-x:auto!important;
+        overflow-y:hidden!important;
+        scrollbar-width:none;
+      }
+      body:not(.ab-embed-mode) .side .nav::-webkit-scrollbar{display:none}
+      body:not(.ab-embed-mode) .side .nav button{
+        flex:0 0 auto!important;
+        white-space:nowrap!important;
+        color:rgba(255,255,255,.88)!important;
+        background:transparent!important;
+        padding:10px 13px!important;
+        border-radius:9px!important;
+      }
+      body:not(.ab-embed-mode) .side .nav button:hover{background:rgba(255,255,255,.10)!important;color:#fff!important}
+      body:not(.ab-embed-mode) .side .nav button.active{
+        background:#fff!important;
+        color:#1f5cc6!important;
+        box-shadow:0 1px 5px rgba(0,0,0,.08)!important;
+      }
+      body:not(.ab-embed-mode) .main{
+        padding:12px 18px 18px!important;
+        margin:0 auto!important;
+      }
+      body:not(.ab-embed-mode) #chantierFiche .fiche-back{margin-top:0!important;margin-bottom:12px!important}
+    }
+    @media(max-width:760px){
+      body:not(.ab-embed-mode) .side{height:52px!important;min-height:52px!important;max-height:52px!important;padding:0 8px!important}
+      body:not(.ab-embed-mode) .side .nav{height:52px!important;gap:4px!important}
+      body:not(.ab-embed-mode) .side .nav button{padding:9px 10px!important;font-size:13px!important}
+      body:not(.ab-embed-mode) .main{padding:10px 9px 14px!important}
+    }
+  `;
+  document.head.appendChild(shellStyle);
+
   if(params.get('embed')!=='1')return;
 
   const DATA_CACHE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
