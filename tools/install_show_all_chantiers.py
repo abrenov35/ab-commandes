@@ -2,20 +2,16 @@ from pathlib import Path
 
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
-old='<script src="show-all-yaya-chantiers.js?v=allchantiers-2"></script>'
-new='<script src="show-all-yaya-chantiers.js?v=allchantiers-3"></script>'
+old='<script src="show-all-yaya-chantiers.js?v=allchantiers-3"></script>'
+new='<script src="show-all-yaya-chantiers.js?v=allchantiers-4"></script>'
 
 if new in s:
-    print('Version chantiers à suivre déjà à jour')
+    print('Version affichage stable v4 déjà à jour')
     raise SystemExit(0)
 
-if old in s:
-    s=s.replace(old,new,1)
-else:
-    needle='</body>'
-    if needle not in s:
-        raise SystemExit('Balise body introuvable')
-    s=s.replace(needle,new+'\n'+needle,1)
+if old not in s:
+    raise SystemExit('Référence show-all-yaya-chantiers v3 introuvable : aucune insertion automatique')
 
+s=s.replace(old,new,1)
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES chantiers à suivre + archivage + cache bust v3')
+print('AB COMMANDES affichage stable + cache bust allchantiers v4')
