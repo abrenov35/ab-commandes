@@ -9,7 +9,7 @@ stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
-detail_new='<script src="embed-order-row-details.js?v=2"></script>'
+detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -78,6 +78,7 @@ if not bg_replaced:s=s.replace(choice_new,choice_new+'\n'+bg_new,1)
 
 detail_replaced=False
 for old in (
+    '<script src="embed-order-row-details.js?v=3"></script>',
     '<script src="embed-order-row-details.js?v=2"></script>',
     '<script src="embed-order-row-details.js?v=1"></script>',
 ):
@@ -99,4 +100,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - groupes repliés dans Yaya après tous les scripts v3')
+print('AB COMMANDES - édition produit par libellé + suppression/document en modale v3')
