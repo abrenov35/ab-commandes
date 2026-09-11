@@ -1,0 +1,29 @@
+name: Afficher tous les chantiers Yaya
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-show-all-chantiers.yml'
+      - 'tools/install_show_all_chantiers.py'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer affichage tous chantiers
+        run: python tools/install_show_all_chantiers.py
+      - name: Publier
+        run: |
+          if git diff --quiet; then
+            echo "Aucun changement"
+            exit 0
+          fi
+          git config user.name "AB COMMANDES automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "AB COMMANDES - afficher tous les chantiers Yaya"
+          git push
