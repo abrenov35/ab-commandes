@@ -3,7 +3,7 @@ from pathlib import Path
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
 
-collapsed_new='<script src="collapsed-status-groups.js?v=3"></script>'
+collapsed_new='<script src="collapsed-status-groups.js?v=4"></script>'
 embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
@@ -12,7 +12,7 @@ bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=2"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
-contrast_new='<script src="embed-contrast.js?v=1"></script>'
+contrast_new='<script src="embed-contrast.js?v=2"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -32,9 +32,11 @@ for old in (
     '<script src="collapsed-status-groups.js?v=1"></script>\n',
     '<script src="collapsed-status-groups.js?v=2"></script>\n',
     '<script src="collapsed-status-groups.js?v=3"></script>\n',
+    '<script src="collapsed-status-groups.js?v=4"></script>\n',
     '<script src="collapsed-status-groups.js?v=1"></script>',
     '<script src="collapsed-status-groups.js?v=2"></script>',
     '<script src="collapsed-status-groups.js?v=3"></script>',
+    '<script src="collapsed-status-groups.js?v=4"></script>',
 ):
     s=s.replace(old,'')
 
@@ -121,15 +123,17 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
 
-# Contraste renforcé uniquement dans Yaya.
+# Contraste renforcé des titres uniquement dans Yaya.
 for old in (
     '<script src="embed-contrast.js?v=1"></script>\n',
+    '<script src="embed-contrast.js?v=2"></script>\n',
     '<script src="embed-contrast.js?v=1"></script>',
+    '<script src="embed-contrast.js?v=2"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(doc_new,doc_new+'\n'+contrast_new,1)
 
-# Le contrôleur de repli doit rester le dernier wrapper de rendu.
+# Le contrôleur d'état reste le dernier wrapper : un groupe ouvert reste ouvert jusqu'au clic utilisateur.
 if collapsed_new not in s:
     s=s.replace(contrast_new,contrast_new+'\n'+collapsed_new,1)
 
@@ -141,4 +145,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - contraste Yaya + modale produit stricte + upload PDF arrière-plan')
+print('AB COMMANDES - groupes persistants + contraste titres Yaya v2 + modale produit stricte + upload PDF arrière-plan')
