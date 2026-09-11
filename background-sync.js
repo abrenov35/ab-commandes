@@ -72,7 +72,6 @@
     try{
       const payload={savedAt:Date.now(),orders:safeArray(orders),documents:safeArray(documents)};
       localStorage.setItem(LOCAL_STATE_KEY,JSON.stringify(payload));
-      /* Compatibilité avec le cache déjà utilisé par le mode Yaya. */
       localStorage.setItem('AB_COMMANDES_EMBED_CACHE_V2',JSON.stringify({version:2,...payload}));
     }catch(e){}
   }
@@ -239,16 +238,21 @@
     if(sent)scheduleVerification();
   }
 
-  /* Remplace les écritures bloquantes par une écriture locale immédiate. */
   try{
     saveOrder=async function(obj){
       const id=text(obj&&obj.id);
-      const existing=safeArray(orders).find(o=>text(o.id)===id)||{};
+      const current=safeArray(orders);
+      const idx=current.findIndex(o=>text(o.id)===id);
+      const existing=idx>=0?current[idx]:{};
       let next={...existing,...obj};
       try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}
-      const nextOrders=safeArray(orders).filter(o=>text(o.id)!==id);
-      nextOrders.push(next);
+
+      /* Une modification remplace la ligne à sa position actuelle : pas de saut visuel. */
+      const nextOrders=current.slice();
+      if(idx>=0)nextOrders[idx]=next;
+      else nextOrders.push(next);
       orders=nextOrders;
+
       queueOrderUpsert(next);
       saveLocalState();
       if(typeof renderAll==='function')renderAll();
@@ -270,8 +274,12 @@
 
     saveDocument=async function(doc){
       const id=text(doc&&doc.id);
-      documents=safeArray(documents).filter(d=>text(d.id)!==id);
-      documents.push(doc);
+      const current=safeArray(documents);
+      const idx=current.findIndex(d=>text(d.id)===id);
+      const nextDocs=current.slice();
+      if(idx>=0)nextDocs[idx]={...current[idx],...doc};
+      else nextDocs.push(doc);
+      documents=nextDocs;
       queueDocUpsert(doc);
       saveLocalState();
       if(typeof renderAll==='function')renderAll();
@@ -296,7 +304,6 @@
     loadAll=backgroundLoadAll;
   }catch(e){console.error('AB COMMANDES · installation synchro locale',e)}
 
-  /* La liste Yaya change peu : elle n'est plus relue chaque minute. */
   try{
     if(typeof loadYayaChantiers==='function'){
       const originalLoadYayaChantiers=loadYayaChantiers;
@@ -322,5 +329,5 @@
   window.addEventListener('online',()=>{flushQueue();backgroundLoadAll(true)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){flushQueue();backgroundLoadAll(true)}});
 
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.0';
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.1';
 })();
