@@ -23,12 +23,14 @@
     window[name]=wrapped;
   }
 
+  /* Au premier affichage et après chaque nouveau rendu de fiche : tout est replié. */
   wrap('renderOrders','ordersList');
   wrap('renderChantierFiche','ficheOrdersList');
   collapseAll();
 
   window.addEventListener('load',collapseAll,{once:true});
-  setTimeout(collapseAll,50);
+  setTimeout(collapseAll,30);
+  setTimeout(collapseAll,180);
 
-  window.__AB_COMMANDES_COLLAPSED_STATUS_GROUPS_VERSION='1.0';
+  window.__AB_COMMANDES_COLLAPSED_STATUS_GROUPS_VERSION='2.0';
 })();
