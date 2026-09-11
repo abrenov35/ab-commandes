@@ -4,6 +4,7 @@
   const PRICE_STORE_KEY='AB_COMMANDES_ORDER_PRICES_V1';
   const IS_EMBED=new URL(window.location.href).searchParams.get('embed')==='1';
   const RESPONSABLES=['Solenn','Mathieu','Morvan','Pascale','Younès','Autre'];
+  let saveBusy=false;
 
   function readPrices(){
     try{const raw=localStorage.getItem(PRICE_STORE_KEY);const o=raw?JSON.parse(raw):{};return o&&typeof o==='object'&&!Array.isArray(o)?o:{}}
@@ -67,16 +68,38 @@
     f.innerHTML=RESPONSABLES.map(x=>'<option value="'+x+'">'+x+'</option>').join('');
     f.value=RESPONSABLES.includes(value)?value:'Autre';
   }
-  function installBackdropGuard(){
-    if(window.__AB_PRODUCT_MODAL_BACKDROP_GUARD_V4)return;
-    window.__AB_PRODUCT_MODAL_BACKDROP_GUARD_V4=true;
-    const guard=e=>{
+
+  function installStrictClosePolicy(){
+    if(window.__AB_PRODUCT_MODAL_STRICT_CLOSE_V1)return;
+    window.__AB_PRODUCT_MODAL_STRICT_CLOSE_V1=true;
+
+    const originalClose=typeof closeModal==='function'?closeModal:null;
+    if(originalClose){
+      window.__AB_PRODUCT_MODAL_ORIGINAL_CLOSE=originalClose;
+      closeModal=function(){return false};
+      const cancel=document.getElementById('cancelBtn');
+      if(cancel)cancel.onclick=function(){return originalClose()};
+    }
+
+    const blockOutside=e=>{
       const modal=document.getElementById('modal');
-      if(!modal||!modal.classList.contains('show')||e.target!==modal)return;
-      e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      if(!modal||!modal.classList.contains('show'))return;
+      if(e.target===modal){
+        e.preventDefault();
+        e.stopPropagation();
+        if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      }
     };
-    document.addEventListener('pointerdown',guard,true);
-    document.addEventListener('click',guard,true);
+    document.addEventListener('pointerdown',blockOutside,true);
+    document.addEventListener('click',blockOutside,true);
+    document.addEventListener('keydown',e=>{
+      const modal=document.getElementById('modal');
+      if(e.key==='Escape'&&modal&&modal.classList.contains('show')){
+        e.preventDefault();
+        e.stopPropagation();
+        if(e.stopImmediatePropagation)e.stopImmediatePropagation();
+      }
+    },true);
   }
 
   try{
@@ -111,7 +134,7 @@
     if(typeof openModal==='function'&&!openModal.__abProductModalV4){
       const previous=openModal;
       const wrapped=async function(id=null){
-        ensureStyle();ensurePriceField();installBackdropGuard();
+        ensureStyle();ensurePriceField();installStrictClosePolicy();
         const out=await previous.apply(this,arguments);
         const order=id&&Array.isArray(orders)?orders.find(x=>String(x.id||'')===String(id)):null;
         const input=ensurePriceField();
@@ -126,6 +149,7 @@
   }catch(e){console.error('AB COMMANDES modale produit open',e)}
 
   async function submitWithPrice(){
+    if(saveBusy)return;
     const old=editId?orders.find(x=>String(x.id)===String(editId)):{};
     const field=document.getElementById('fChantier');
     const chantierId=String((field&&field.value)||old?.chantierId||selectedChantierId||'');
@@ -137,10 +161,26 @@
     const data={...old,id:editId||uid(),chantierId,chantier,produit:(document.getElementById('fProduit')?.value||'').trim(),qte:(document.getElementById('fQte')?.value||'').trim(),prix,fournisseur,responsable:cleanResp(document.getElementById('fResp')?.value||''),status,notes:(document.getElementById('fNotes')?.value||'').trim()};
     if(!data.chantier||!data.produit){alert('Indique le produit.');return}
     if((status==='ordered'||status==='received')&&!fournisseur){alert('Le fournisseur est nécessaire quand la commande est commandée ou reçue.');return}
-    setPrice(data.id,prix);closeModal();await saveOrder(data);
+
+    const save=document.getElementById('saveBtn');
+    saveBusy=true;
+    if(save){save.disabled=true;save.textContent='Enregistrement…'}
+    try{
+      setPrice(data.id,prix);
+      await saveOrder(data);
+      editId=data.id;
+      const title=document.getElementById('modalTitle');if(title)title.textContent='Modifier le produit';
+      lockChantier();
+      if(save){save.textContent='Enregistré ✓';setTimeout(()=>{if(save.isConnected){save.textContent='Enregistrer';save.disabled=false}},900)}
+    }catch(e){
+      console.error('AB COMMANDES modale produit save',e);
+      if(save){save.textContent='Enregistrer';save.disabled=false}
+    }finally{
+      saveBusy=false;
+    }
   }
 
-  ensureStyle();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installBackdropGuard();
+  ensureStyle();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installStrictClosePolicy();
   try{submit=submitWithPrice;const save=document.getElementById('saveBtn');if(save)save.onclick=submitWithPrice}catch(e){console.error('AB COMMANDES modale produit submit',e)}
-  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='4.0';
+  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='4.1';
 })();
