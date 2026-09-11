@@ -3,7 +3,7 @@ from pathlib import Path
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
 
-collapsed_new='<script src="collapsed-status-groups.js?v=2"></script>'
+collapsed_new='<script src="collapsed-status-groups.js?v=3"></script>'
 embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
@@ -25,20 +25,15 @@ if embed_new not in s:
     if not replaced:
         raise SystemExit('Référence embed-mode introuvable')
 
-# Charge systématiquement le contrôleur qui ferme les groupes au premier affichage.
 for old in (
+    '<script src="collapsed-status-groups.js?v=1"></script>\n',
+    '<script src="collapsed-status-groups.js?v=2"></script>\n',
+    '<script src="collapsed-status-groups.js?v=3"></script>\n',
     '<script src="collapsed-status-groups.js?v=1"></script>',
     '<script src="collapsed-status-groups.js?v=2"></script>',
+    '<script src="collapsed-status-groups.js?v=3"></script>',
 ):
-    if old in s:
-        s=s.replace(old,collapsed_new,1)
-        break
-else:
-    show_all='<script src="show-all-yaya-chantiers.js?v=allchantiers-5"></script>'
-    if show_all in s:
-        s=s.replace(show_all,show_all+'\n'+collapsed_new,1)
-    else:
-        s=s.replace(embed_new,collapsed_new+'\n'+embed_new,1)
+    s=s.replace(old,'')
 
 for old in (
     '<script src="embed-modal-fit.js?v=2"></script>\n',
@@ -92,6 +87,10 @@ for old in (
         break
 if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
+# Le contrôleur de repli doit être chargé en dernier, après tous les wrappers de rendu.
+if collapsed_new not in s:
+    s=s.replace(detail_new,detail_new+'\n'+collapsed_new,1)
+
 old_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();'
 new_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();'
 if old_boot in s:s=s.replace(old_boot,new_boot,1)
@@ -100,4 +99,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - groupes repliés par défaut v2')
+print('AB COMMANDES - groupes repliés dans Yaya après tous les scripts v3')
