@@ -101,6 +101,22 @@ const GAS='https://script.google.com/macros/s/AKfycbxswcobk2vJMh0qlbxseImn1SZ7GB
 const YAYA_API='https://script.google.com/macros/s/AKfycbx6IwMFf2plAq7i8qf8qF6f6MMC-1-WynAqn1ZRqCZrVqHeE9a1ygSSTzp5uOf0L3bn/exec';
 const STATUSES={choice:{label:'Choix client à faire',color:'purple'},todo:{label:'À commander',color:'orange'},ordered:{label:'Commandé',color:'blue'},received:{label:'Reçu',color:'green'},problem:{label:'Problème',color:'red'}};
 let orders=[],documents=[],yayaChantiers=[],editId=null,currentDocOrderId=null,loading=false,yayaLoaded=false,selectedChantierId='',selectedChantierName='',presetChantierId='';
+/* AB_COMMANDES_YAYA_DEEPLINK_V1 */
+const DEEP_LINK_PARAMS=new URL(window.location.href).searchParams;
+const DEEP_LINK_CHANTIER_ID=String(DEEP_LINK_PARAMS.get('chantierId')||'').trim();
+const DEEP_LINK_CHANTIER_NAME=String(DEEP_LINK_PARAMS.get('chantierName')||'').trim();
+let deepLinkOpened=false;
+function tryOpenDeepLink(){
+  if(deepLinkOpened||(!DEEP_LINK_CHANTIER_ID&&!DEEP_LINK_CHANTIER_NAME))return;
+  const y=DEEP_LINK_CHANTIER_ID?yayaChantiers.find(c=>String(c.id||'')===DEEP_LINK_CHANTIER_ID):null;
+  const id=String(y?.id||DEEP_LINK_CHANTIER_ID||'');
+  const name=String(y?.nom||DEEP_LINK_CHANTIER_NAME||'').trim();
+  if(!id&&!name)return;
+  if(!name&&DEEP_LINK_CHANTIER_ID&&!yayaChantiers.length)return;
+  deepLinkOpened=true;
+  openChantierFiche(id,name||'Chantier');
+}
+
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2)}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
@@ -277,7 +293,7 @@ function renderDocList(){if(!currentDocOrderId)return;const a=documents.filter(d
 async function addDoc(){const o=orders.find(x=>x.id===currentDocOrderId);const url=$('#dUrl').value.trim();if(!url){alert('Ajoute l’URL du PDF.');return}const doc={id:uid(),commande_id:currentDocOrderId,chantier:o?.chantier||'',type:$('#dType').value,nom_fichier:$('#dName').value.trim()||$('#dType').value,url_pdf:url,source:$('#dSource').value,date_document:$('#dDate').value,auteur:''};$('#dName').value='';$('#dUrl').value='';$('#dDate').value='';await saveDocument(doc)}
 $$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active')});
 $('#addBtn').onclick=()=>openModal();$('#addBtnTop').onclick=()=>openModal();$('#ficheBackBtn').onclick=closeChantierFiche;$('#ficheAddBtn').onclick=addProductForCurrentChantier;$('#cancelBtn').onclick=closeModal;$('#saveBtn').onclick=submit;$('#modal').onclick=e=>{if(e.target===$('#modal'))closeModal()};$('#closeDocBtn').onclick=closeDocs;$('#addDocBtn').onclick=addDoc;$('#docModal').onclick=e=>{if(e.target===$('#docModal'))closeDocs()};$('#search').oninput=renderAll;$('#filterResp').onchange=renderAll;$('#filterStatus').onchange=renderAll;
-renderAll();hydrateYayaCache();loadYayaChantiers();loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);
+renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);
 </script>
 </body>
 </html>
