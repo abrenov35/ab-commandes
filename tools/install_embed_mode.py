@@ -11,6 +11,7 @@ choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-price-lock.js?v=1"></script>'
+doc_new='<script src="doc-modal-simple.js?v=1"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -97,9 +98,17 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(detail_new,detail_new+'\n'+price_new,1)
 
+# Modale document compacte : si aucune PJ, seul le lien PDF reste visible.
+for old in (
+    '<script src="doc-modal-simple.js?v=1"></script>\n',
+    '<script src="doc-modal-simple.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(price_new,price_new+'\n'+doc_new,1)
+
 # Le contrôleur de repli doit rester le dernier wrapper de rendu.
 if collapsed_new not in s:
-    s=s.replace(price_new,price_new+'\n'+collapsed_new,1)
+    s=s.replace(doc_new,doc_new+'\n'+collapsed_new,1)
 
 old_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();'
 new_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();'
@@ -109,4 +118,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - prix optionnel persistant + chantier figé dans la modale')
+print('AB COMMANDES - modale document compacte sans PJ + prix/chantier figé')
