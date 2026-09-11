@@ -1,6 +1,8 @@
 const SPREADSHEET_ID = '1oaS7qbqgMPpL4uOmZZ1WveTAVsgTJln09lsTw111YeY';
 const COMMANDES_SHEET = 'COMMANDES';
 const DOCUMENTS_SHEET = 'DOCUMENTS';
+const DRIVE_ROOT_FOLDER = 'AB COMMANDES';
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 /* prix est ajouté EN FIN de structure pour ne pas décaler les colonnes existantes du Sheet. */
 const COMMAND_HEADERS = [
@@ -8,8 +10,9 @@ const COMMAND_HEADERS = [
   'qte_commandee','qte_recue','date_commande','date_livraison','notes','created_at','updated_at','prix'
 ];
 
+/* drive_file_id est ajouté en fin pour préserver les colonnes DOCUMENTS existantes. */
 const DOCUMENT_HEADERS = [
-  'id','commande_id','chantier','type','nom_fichier','url_pdf','source','date_document','auteur','created_at'
+  'id','commande_id','chantier','type','nom_fichier','url_pdf','source','date_document','auteur','created_at','drive_file_id'
 ];
 
 function doGet(e) {
@@ -52,8 +55,18 @@ function doPost(e) {
       upsertObject_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, doc);
       return json_({ ok: true, document: doc });
     }
+    if (action === 'document_upload') {
+      const doc = uploadDocument_(data);
+      upsertObject_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, doc);
+      return json_({ ok: true, document: doc });
+    }
     if (action === 'document_delete') {
-      deleteById_(DOCUMENTS_SHEET, String(data.id || ''));
+      const id = String(data.id || '');
+      const doc = findObjectById_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, id);
+      if (doc && doc.drive_file_id) {
+        try { DriveApp.getFileById(String(doc.drive_file_id)).setTrashed(true); } catch (_) {}
+      }
+      deleteById_(DOCUMENTS_SHEET, id);
       return json_({ ok: true });
     }
     return json_({ ok: false, error: 'Action inconnue' });
@@ -90,6 +103,11 @@ function readObjects_(sheetName, headers) {
     headers.forEach((h, i) => o[h] = r[i]);
     return o;
   });
+}
+
+function findObjectById_(sheetName, headers, id) {
+  if (!id) return null;
+  return readObjects_(sheetName, headers).find(o => String(o.id || '') === String(id)) || null;
 }
 
 function upsertObject_(sheetName, headers, obj) {
@@ -158,14 +176,71 @@ function normalizeDocument_(d) {
     id: String(d.id || Utilities.getUuid()),
     commande_id: String(d.commande_id || ''),
     chantier: String(d.chantier || '').trim().toUpperCase(),
-    type: String(d.type || 'Bon de commande'),
+    type: String(d.type || 'PDF'),
     nom_fichier: String(d.nom_fichier || '').trim(),
     url_pdf: String(d.url_pdf || '').trim(),
     source: String(d.source || 'Yaya'),
     date_document: String(d.date_document || ''),
     auteur: String(d.auteur || ''),
-    created_at: String(d.created_at || now)
+    created_at: String(d.created_at || now),
+    drive_file_id: String(d.drive_file_id || '')
   };
+}
+
+function uploadDocument_(d) {
+  const commandeId = String(d.commande_id || '').trim();
+  if (!commandeId) throw new Error('Commande manquante');
+
+  const rawBase64 = String(d.file_base64 || '').replace(/^data:[^;]+;base64,/, '').trim();
+  if (!rawBase64) throw new Error('Fichier manquant');
+
+  let bytes;
+  try { bytes = Utilities.base64Decode(rawBase64); }
+  catch (_) { throw new Error('Fichier illisible'); }
+  if (!bytes || !bytes.length) throw new Error('Fichier vide');
+  if (bytes.length > MAX_UPLOAD_BYTES) throw new Error('Fichier trop volumineux (8 Mo maximum)');
+
+  const chantier = String(d.chantier || 'CHANTIER').trim().toUpperCase();
+  const fileName = safeFileName_(d.file_name || d.nom_fichier || 'document.pdf');
+  const mimeType = String(d.mime_type || 'application/pdf').trim() || 'application/pdf';
+
+  const folder = getDriveFolderForChantier_(chantier);
+  const blob = Utilities.newBlob(bytes, mimeType, fileName);
+  const file = folder.createFile(blob);
+  try { file.setDescription('AB COMMANDES · ' + chantier + ' · commande ' + commandeId); } catch (_) {}
+
+  return normalizeDocument_({
+    id: String(d.id || Utilities.getUuid()),
+    commande_id: commandeId,
+    chantier: chantier,
+    type: String(d.type || 'PDF'),
+    nom_fichier: fileName,
+    url_pdf: file.getUrl(),
+    source: 'Google Drive',
+    date_document: String(d.date_document || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd')),
+    auteur: String(d.auteur || ''),
+    created_at: String(d.created_at || new Date().toISOString()),
+    drive_file_id: file.getId()
+  });
+}
+
+function getDriveFolderForChantier_(chantier) {
+  const root = DriveApp.getRootFolder();
+  const roots = root.getFoldersByName(DRIVE_ROOT_FOLDER);
+  const base = roots.hasNext() ? roots.next() : root.createFolder(DRIVE_ROOT_FOLDER);
+  const chantierName = safeFolderName_(chantier || 'CHANTIER');
+  const children = base.getFoldersByName(chantierName);
+  return children.hasNext() ? children.next() : base.createFolder(chantierName);
+}
+
+function safeFolderName_(name) {
+  const s = String(name || 'CHANTIER').trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ');
+  return s.slice(0, 100) || 'CHANTIER';
+}
+
+function safeFileName_(name) {
+  const s = String(name || 'document.pdf').trim().replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ');
+  return s.slice(0, 180) || 'document.pdf';
 }
 
 function output_(obj, e) {
