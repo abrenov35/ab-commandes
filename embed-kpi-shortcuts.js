@@ -30,7 +30,11 @@
       min-width:0!important;
       cursor:pointer!important;
       user-select:none!important;
+      touch-action:manipulation!important;
       transition:border-color .12s ease,background .12s ease,transform .12s ease!important;
+    }
+    body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut *{
+      pointer-events:none!important;
     }
     body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut:hover{
       border-color:#aebed2!important;
@@ -84,6 +88,14 @@
     return [];
   }
 
+  function applyStatus(status){
+    const select=document.getElementById('fStatus');
+    if(!select)return false;
+    select.value=status;
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+    return true;
+  }
+
   async function openForStatus(status){
     try{
       if(typeof selectedChantierId!=='undefined'&&selectedChantierId&&typeof presetChantierId!=='undefined'){
@@ -92,13 +104,15 @@
     }catch(e){}
 
     try{
-      if(typeof openModal==='function')await openModal();
-      const select=document.getElementById('fStatus');
-      if(select){
-        select.value=status;
-        select.dispatchEvent(new Event('change',{bubbles:true}));
-      }
-    }catch(e){console.error('AB COMMANDES - ouverture raccourci statut',e)}
+      if(typeof openModal!=='function')return;
+      const result=openModal();
+      if(result&&typeof result.then==='function')await result;
+      applyStatus(status);
+      requestAnimationFrame(()=>applyStatus(status));
+      setTimeout(()=>applyStatus(status),50);
+    }catch(e){
+      console.error('AB COMMANDES - ouverture raccourci statut',e);
+    }
   }
 
   function removeLegacyAddButtons(){
@@ -115,21 +129,13 @@
         <div><strong id="${k.id}">0</strong><span>${k.label}</span></div>
       </div>
     `).join('')+'<span id="ficheKpiProblem" hidden aria-hidden="true">0</span>';
-    host.dataset.abShortcutKpis='3';
-
-    host.querySelectorAll('.ab-kpi-shortcut').forEach(card=>{
-      const activate=()=>openForStatus(card.dataset.abStatus||'todo');
-      card.addEventListener('click',activate);
-      card.addEventListener('keydown',e=>{
-        if(e.key==='Enter'||e.key===' '){e.preventDefault();activate();}
-      });
-    });
+    host.dataset.abShortcutKpis='4';
   }
 
   function updateKpis(){
     const host=document.querySelector('#chantierFiche .fiche-kpis');
     if(!host)return;
-    if(host.dataset.abShortcutKpis!=='3'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
+    if(host.dataset.abShortcutKpis!=='4'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
 
     const list=currentFicheOrders();
     KPI_DEFS.forEach(k=>{
@@ -162,6 +168,24 @@
     renameChoiceLabels();
   }
 
+  /* Délégation permanente : le clic reste actif même quand renderChantierFiche reconstruit les pavés. */
+  document.addEventListener('click',e=>{
+    const card=e.target&&e.target.closest?e.target.closest('#chantierFiche .ab-kpi-shortcut'):null;
+    if(!card)return;
+    e.preventDefault();
+    e.stopPropagation();
+    openForStatus(card.dataset.abStatus||'todo');
+  },true);
+
+  document.addEventListener('keydown',e=>{
+    if(e.key!=='Enter'&&e.key!==' ')return;
+    const card=e.target&&e.target.closest?e.target.closest('#chantierFiche .ab-kpi-shortcut'):null;
+    if(!card)return;
+    e.preventDefault();
+    e.stopPropagation();
+    openForStatus(card.dataset.abStatus||'todo');
+  },true);
+
   try{
     if(typeof renderChantierFiche==='function'){
       const originalRenderChantierFiche=renderChantierFiche;
@@ -186,5 +210,5 @@
   setTimeout(refresh,150);
   setTimeout(refresh,600);
 
-  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='3.0';
+  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='4.0';
 })();
