@@ -3,6 +3,7 @@ from pathlib import Path
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
 
+collapsed_new='<script src="collapsed-status-groups.js?v=1"></script>'
 embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
@@ -23,6 +24,13 @@ if embed_new not in s:
             break
     if not replaced:
         raise SystemExit('Référence embed-mode introuvable')
+
+if collapsed_new not in s:
+    show_all='<script src="show-all-yaya-chantiers.js?v=allchantiers-5"></script>'
+    if show_all in s:
+        s=s.replace(show_all,show_all+'\n'+collapsed_new,1)
+    else:
+        s=s.replace(embed_new,collapsed_new+'\n'+embed_new,1)
 
 for old in (
     '<script src="embed-modal-fit.js?v=2"></script>\n',
@@ -84,4 +92,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - modale immédiate + navigation stable + lignes sans observer v6')
+print('AB COMMANDES - groupes repliés par défaut + modale stable v6')
