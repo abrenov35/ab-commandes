@@ -6,7 +6,7 @@ s=p.read_text(encoding='utf-8')
 embed_new='<script src="embed-mode.js?v=10"></script>'
 modal_new='<script src="embed-modal-fit.js?v=2"></script>'
 compact_new='<script src="embed-modal-compact.js?v=1"></script>'
-kpi_new='<script src="embed-kpi-shortcuts.js?v=4"></script>'
+kpi_new='<script src="embed-kpi-shortcuts.js?v=5"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=1"></script>'
@@ -34,6 +34,7 @@ if compact_new not in s:s=s.replace(modal_new,modal_new+'\n'+compact_new,1)
 
 kpi_replaced=False
 for old in (
+    '<script src="embed-kpi-shortcuts.js?v=5"></script>',
     '<script src="embed-kpi-shortcuts.js?v=4"></script>',
     '<script src="embed-kpi-shortcuts.js?v=3"></script>',
     '<script src="embed-kpi-shortcuts.js?v=2"></script>',
@@ -70,4 +71,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - cache immédiat + synchronisation silencieuse arrière-plan v3')
+print('AB COMMANDES - pavés cliquables + cache v5')
