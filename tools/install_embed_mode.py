@@ -8,7 +8,7 @@ stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
-detail_new='<script src="embed-order-row-details.js?v=1"></script>'
+detail_new='<script src="embed-order-row-details.js?v=2"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -24,7 +24,6 @@ if embed_new not in s:
     if not replaced:
         raise SystemExit('Référence embed-mode introuvable')
 
-# Supprime les deux anciens contrôleurs de modale qui utilisaient des MutationObserver concurrents.
 for old in (
     '<script src="embed-modal-fit.js?v=2"></script>\n',
     '<script src="embed-modal-fit.js?v=1"></script>\n',
@@ -35,8 +34,7 @@ for old in (
 ):
     s=s.replace(old,'')
 
-if stable_new not in s:
-    s=s.replace(embed_new,embed_new+'\n'+stable_new,1)
+if stable_new not in s:s=s.replace(embed_new,embed_new+'\n'+stable_new,1)
 
 kpi_replaced=False
 for old in (
@@ -67,7 +65,16 @@ for old in (
         break
 if not bg_replaced:s=s.replace(choice_new,choice_new+'\n'+bg_new,1)
 
-if detail_new not in s:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
+detail_replaced=False
+for old in (
+    '<script src="embed-order-row-details.js?v=2"></script>',
+    '<script src="embed-order-row-details.js?v=1"></script>',
+):
+    if old in s:
+        if old!=detail_new:s=s.replace(old,detail_new,1)
+        detail_replaced=True
+        break
+if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
 old_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();'
 new_boot='renderAll();hydrateYayaCache();tryOpenDeepLink();'
@@ -77,4 +84,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - modale immédiate + navigation stable sans observers concurrents v6')
+print('AB COMMANDES - modale immédiate + navigation stable + lignes sans observer v6')
