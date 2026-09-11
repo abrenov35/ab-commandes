@@ -22,11 +22,11 @@
     body.ab-embed-mode #chantierFiche .top{margin:0 0 8px!important}
     body.ab-embed-mode #chantierFiche .title h1{font-size:23px!important}
     body.ab-embed-mode #chantierFiche .fiche-sub{margin-top:4px!important}
-    body.ab-embed-mode .fiche-kpis{margin:14px 0!important;gap:10px!important}
-    body.ab-embed-mode .kpi{padding:14px 16px!important;box-shadow:none!important}
-    body.ab-embed-mode .status-dot{width:26px!important;height:26px!important}
-    body.ab-embed-mode .kpi strong{font-size:26px!important}
-    body.ab-embed-mode .kpi span{font-size:14px!important}
+    body.ab-embed-mode .fiche-kpis{margin:12px 0!important;gap:8px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+    body.ab-embed-mode .fiche-kpis .kpi{min-width:0!important;padding:10px 12px!important;gap:9px!important;box-shadow:none!important}
+    body.ab-embed-mode .fiche-kpis .status-dot{width:22px!important;height:22px!important;flex:0 0 22px!important}
+    body.ab-embed-mode .fiche-kpis .kpi strong{font-size:22px!important;line-height:1!important}
+    body.ab-embed-mode .fiche-kpis .kpi span{font-size:12px!important;line-height:1.15!important}
     body.ab-embed-mode .toolbar{margin:14px 0 10px!important}
     body.ab-embed-mode .toolbar h2{font-size:19px!important}
     body.ab-embed-mode .order-row{box-shadow:none!important}
@@ -34,7 +34,11 @@
     @media(max-width:760px){
       body.ab-embed-mode .main{padding:9px 9px 4px!important}
       body.ab-embed-mode #chantierFiche .title h1{font-size:20px!important}
-      body.ab-embed-mode .fiche-kpis{grid-template-columns:1fr 1fr!important}
+      body.ab-embed-mode .fiche-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important}
+      body.ab-embed-mode .fiche-kpis .kpi{padding:8px 7px!important;gap:6px!important}
+      body.ab-embed-mode .fiche-kpis .status-dot{width:18px!important;height:18px!important;flex-basis:18px!important}
+      body.ab-embed-mode .fiche-kpis .kpi strong{font-size:18px!important}
+      body.ab-embed-mode .fiche-kpis .kpi span{font-size:10px!important}
     }
   `;
   document.head.appendChild(style);
@@ -117,5 +121,5 @@
   setTimeout(sendHeight,500);
   setTimeout(sendHeight,1200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.0';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.1';
 })();
