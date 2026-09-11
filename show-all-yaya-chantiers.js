@@ -3,7 +3,16 @@
 
   function cleanName(v){return String(v||'').replace(/^[\s•·▪◦\-–—]+/,'').trim()}
   function keyName(v){return normName(cleanName(v)).replace(/[^A-Z0-9]+/g,' ').trim()}
-  function isRealChantierName(v){const k=keyName(v).replace(/\s+/g,'');return !!k&&k!=='ABRENOV35'}
+  function isRealChantierName(v){return !!keyName(v)}
+
+  /* AB RENOV 35 est un vrai chantier test : ne plus l'exclure. */
+  window.activeYayaChantiers=function(){
+    const src=Array.isArray(yayaChantiers)?yayaChantiers:[];
+    return src.filter(c=>{
+      const statut=String(c?.statut||'').trim().toLowerCase();
+      return statut!=='terminé'&&statut!=='termine'&&statut!=='archivé'&&statut!=='archive';
+    });
+  };
 
   function baseYayaChantiers(){
     const src=(typeof activeYayaChantiers==='function')?activeYayaChantiers():Array.isArray(yayaChantiers)?yayaChantiers:[];
@@ -80,11 +89,17 @@
   };
 
   function rerender(){
-    try{renderOverviewChantiers();renderChantiers()}catch(e){console.error('AB COMMANDES tous chantiers:',e)}
+    try{
+      if(typeof refreshChantierSelect==='function')refreshChantierSelect($('#fChantier')?.value||'','');
+      renderOverviewChantiers();
+      renderChantiers();
+      const badge=document.querySelector('.yaya');
+      if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
+    }catch(e){console.error('AB COMMANDES tous chantiers:',e)}
   }
 
   rerender();
   setTimeout(rerender,800);
   setTimeout(rerender,2500);
-  window.__AB_COMMANDES_SHOW_ALL_CHANTIERS_VERSION='1.0';
+  window.__AB_COMMANDES_SHOW_ALL_CHANTIERS_VERSION='1.1';
 })();
