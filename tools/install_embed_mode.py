@@ -3,7 +3,7 @@ from pathlib import Path
 p=Path('index.html')
 s=p.read_text(encoding='utf-8')
 
-collapsed_new='<script src="collapsed-status-groups.js?v=1"></script>'
+collapsed_new='<script src="collapsed-status-groups.js?v=2"></script>'
 embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
@@ -25,7 +25,15 @@ if embed_new not in s:
     if not replaced:
         raise SystemExit('Référence embed-mode introuvable')
 
-if collapsed_new not in s:
+# Charge systématiquement le contrôleur qui ferme les groupes au premier affichage.
+for old in (
+    '<script src="collapsed-status-groups.js?v=1"></script>',
+    '<script src="collapsed-status-groups.js?v=2"></script>',
+):
+    if old in s:
+        s=s.replace(old,collapsed_new,1)
+        break
+else:
     show_all='<script src="show-all-yaya-chantiers.js?v=allchantiers-5"></script>'
     if show_all in s:
         s=s.replace(show_all,show_all+'\n'+collapsed_new,1)
@@ -92,4 +100,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - groupes repliés par défaut + modale stable v6')
+print('AB COMMANDES - groupes repliés par défaut v2')
