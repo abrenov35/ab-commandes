@@ -2,64 +2,109 @@
   'use strict';
   const params=new URL(window.location.href).searchParams;
 
-  /* AB_COMMANDES_TOPBAR_V29 */
+  /* AB_COMMANDES_TOPBAR_V30 */
   const shellStyle=document.createElement('style');
-  shellStyle.id='ab-commandes-topbar-v29-style';
+  shellStyle.id='ab-commandes-topbar-v30-style';
   shellStyle.textContent=`
     @media(max-width:1150px){
-      body:not(.ab-embed-mode) .app{display:block!important;min-height:0!important}
+      html,body{margin:0!important;padding:0!important}
+      body:not(.ab-embed-mode) .app{display:block!important;min-height:0!important;height:auto!important}
       body:not(.ab-embed-mode) .side{
-        height:56px!important;
-        min-height:56px!important;
-        max-height:56px!important;
+        box-sizing:border-box!important;
+        width:100%!important;
+        height:58px!important;
+        min-height:58px!important;
+        max-height:58px!important;
         padding:0 12px!important;
+        margin:0!important;
         position:sticky!important;
         top:0!important;
-        z-index:40!important;
-        display:block!important;
-        overflow:hidden!important;
-        background:var(--navy)!important;
-        border:0!important;
-        border-bottom:1px solid rgba(255,255,255,.12)!important;
-        box-shadow:0 4px 16px rgba(20,33,61,.12)!important;
-      }
-      body:not(.ab-embed-mode) .side .brand,
-      body:not(.ab-embed-mode) .side .sync{display:none!important}
-      body:not(.ab-embed-mode) .side .nav{
-        height:56px!important;
+        left:0!important;
+        z-index:100!important;
         display:flex!important;
         align-items:center!important;
-        gap:6px!important;
+        gap:14px!important;
+        overflow:hidden!important;
+        background:#123f6b!important;
+        border:0!important;
+        border-bottom:1px solid rgba(255,255,255,.14)!important;
+        box-shadow:0 3px 12px rgba(20,33,61,.14)!important;
+      }
+      body:not(.ab-embed-mode) .side .brand{
+        display:block!important;
+        flex:0 0 auto!important;
+        color:#fff!important;
+        font-size:15px!important;
+        line-height:1!important;
+        white-space:nowrap!important;
+        margin:0!important;
+        padding:0 4px 0 2px!important;
+      }
+      body:not(.ab-embed-mode) .side .brand small{display:none!important}
+      body:not(.ab-embed-mode) .side .sync{display:none!important}
+      body:not(.ab-embed-mode) .side .nav{
+        min-width:0!important;
+        height:58px!important;
+        flex:1 1 auto!important;
+        display:flex!important;
+        align-items:center!important;
+        gap:5px!important;
+        margin:0!important;
+        padding:0!important;
         overflow-x:auto!important;
         overflow-y:hidden!important;
-        scrollbar-width:none;
+        scrollbar-width:none!important;
       }
-      body:not(.ab-embed-mode) .side .nav::-webkit-scrollbar{display:none}
+      body:not(.ab-embed-mode) .side .nav::-webkit-scrollbar{display:none!important}
       body:not(.ab-embed-mode) .side .nav button{
         flex:0 0 auto!important;
         white-space:nowrap!important;
-        color:rgba(255,255,255,.88)!important;
+        color:rgba(255,255,255,.92)!important;
         background:transparent!important;
-        padding:10px 13px!important;
+        border:0!important;
+        padding:10px 12px!important;
+        margin:0!important;
         border-radius:9px!important;
+        font-weight:800!important;
       }
-      body:not(.ab-embed-mode) .side .nav button:hover{background:rgba(255,255,255,.10)!important;color:#fff!important}
+      body:not(.ab-embed-mode) .side .nav button:hover{background:rgba(255,255,255,.11)!important;color:#fff!important}
       body:not(.ab-embed-mode) .side .nav button.active{
         background:#fff!important;
-        color:#1f5cc6!important;
-        box-shadow:0 1px 5px rgba(0,0,0,.08)!important;
+        color:#1456a0!important;
+        box-shadow:0 1px 5px rgba(0,0,0,.10)!important;
       }
       body:not(.ab-embed-mode) .main{
-        padding:12px 18px 18px!important;
+        display:block!important;
+        padding:8px 12px 16px!important;
         margin:0 auto!important;
+        max-width:1500px!important;
+        min-height:0!important;
       }
-      body:not(.ab-embed-mode) #chantierFiche .fiche-back{margin-top:0!important;margin-bottom:12px!important}
+      body:not(.ab-embed-mode) .view.active{margin-top:0!important;padding-top:0!important}
+      body:not(.ab-embed-mode) #overview,
+      body:not(.ab-embed-mode) #chantiers,
+      body:not(.ab-embed-mode) #commandes,
+      body:not(.ab-embed-mode) #chantierFiche{margin-top:0!important;padding-top:0!important}
+      body:not(.ab-embed-mode) #overview>.top,
+      body:not(.ab-embed-mode) #chantiers>.top,
+      body:not(.ab-embed-mode) #commandes>.top,
+      body:not(.ab-embed-mode) #chantierFiche>.top{margin-top:0!important;padding-top:0!important}
+      body:not(.ab-embed-mode) #chantiers .ab-section-title{margin-top:12px!important}
+      body:not(.ab-embed-mode) #chantiers .ab-active-grid{margin-top:8px!important}
+      body:not(.ab-embed-mode) #chantierFiche .fiche-back{margin-top:0!important;margin-bottom:10px!important}
     }
     @media(max-width:760px){
-      body:not(.ab-embed-mode) .side{height:52px!important;min-height:52px!important;max-height:52px!important;padding:0 8px!important}
-      body:not(.ab-embed-mode) .side .nav{height:52px!important;gap:4px!important}
-      body:not(.ab-embed-mode) .side .nav button{padding:9px 10px!important;font-size:13px!important}
-      body:not(.ab-embed-mode) .main{padding:10px 9px 14px!important}
+      body:not(.ab-embed-mode) .side{
+        height:54px!important;
+        min-height:54px!important;
+        max-height:54px!important;
+        padding:0 8px!important;
+        gap:8px!important;
+      }
+      body:not(.ab-embed-mode) .side .brand{font-size:13px!important}
+      body:not(.ab-embed-mode) .side .nav{height:54px!important;gap:3px!important}
+      body:not(.ab-embed-mode) .side .nav button{padding:9px 9px!important;font-size:12px!important}
+      body:not(.ab-embed-mode) .main{padding:7px 8px 12px!important}
     }
   `;
   document.head.appendChild(shellStyle);
@@ -112,12 +157,7 @@
   function saveSnapshot(){
     try{
       if(typeof orders==='undefined'||!Array.isArray(orders))return;
-      const payload={
-        version:2,
-        savedAt:Date.now(),
-        orders:orders,
-        documents:(typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]
-      };
+      const payload={version:2,savedAt:Date.now(),orders:orders,documents:(typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]};
       localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(payload));
     }catch(e){}
   }
@@ -128,49 +168,29 @@
       if(!raw)return false;
       const cached=JSON.parse(raw);
       if(!cached||!Array.isArray(cached.orders))return false;
-      if(cached.savedAt&&Date.now()-Number(cached.savedAt)>CACHE_MAX_AGE_MS){
-        localStorage.removeItem(DATA_CACHE_KEY);
-        return false;
-      }
-
-      orders=cached.orders.map(function(o){
-        try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o;}catch(e){return o;}
-      });
+      if(cached.savedAt&&Date.now()-Number(cached.savedAt)>CACHE_MAX_AGE_MS){localStorage.removeItem(DATA_CACHE_KEY);return false;}
+      orders=cached.orders.map(function(o){try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o;}catch(e){return o;}});
       documents=Array.isArray(cached.documents)?cached.documents:[];
-
       if(typeof renderAll==='function')renderAll();
       if(typeof tryOpenDeepLink==='function')tryOpenDeepLink();
       try{window.parent.postMessage({type:'AB_COMMANDES_CACHE_READY',savedAt:Number(cached.savedAt)||0},'*');}catch(e){}
       return true;
-    }catch(e){
-      return false;
-    }
+    }catch(e){return false;}
   }
 
   try{
     if(typeof renderAll==='function'){
       const originalRenderAll=renderAll;
-      renderAll=function(){
-        const result=originalRenderAll.apply(this,arguments);
-        saveSnapshot();
-        return result;
-      };
+      renderAll=function(){const result=originalRenderAll.apply(this,arguments);saveSnapshot();return result;};
     }
   }catch(e){}
 
   const restoredFromCache=hydrateSnapshot();
-  if(restoredFromCache){
-    try{setSync(true,'Affichage local · mise à jour en arrière-plan…');}catch(e){}
-  }
+  if(restoredFromCache){try{setSync(true,'Affichage local · mise à jour en arrière-plan…');}catch(e){}}
 
   function sendHeight(){
     try{
-      const contentHeight=Math.max(
-        document.body.scrollHeight||0,
-        document.body.offsetHeight||0,
-        document.documentElement.scrollHeight||0,
-        document.documentElement.offsetHeight||0
-      );
+      const contentHeight=Math.max(document.body.scrollHeight||0,document.body.offsetHeight||0,document.documentElement.scrollHeight||0,document.documentElement.offsetHeight||0);
       const h=Math.max(120,Math.ceil(contentHeight||260)+2);
       window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:h},'*');
     }catch(e){}
@@ -188,5 +208,5 @@
   setTimeout(sendHeight,1200);
   setTimeout(sendHeight,2200);
 
-  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.5';
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.6';
 })();
