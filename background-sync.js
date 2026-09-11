@@ -5,11 +5,10 @@
   const EMBED_STATE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
   const PENDING_KEY='AB_COMMANDES_PENDING_OPS_V1';
   const LOCAL_MAX_AGE=30*24*60*60*1000;
-  const REMOTE_SYNC_MS=60*1000;
+  const REMOTE_SYNC_MS=5*60*1000;
   const MIN_REMOTE_GAP_MS=45*1000;
   const YAYA_SYNC_MS=5*60*1000;
-  const FLUSH_MS=12*1000;
-  const RESEND_MS=10*1000;
+  const RESEND_MS=90*1000;
   const VERIFY_DELAY_MS=1800;
 
   let queue=readQueue();
@@ -23,7 +22,7 @@
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
 
-  function orderComparable(o){return {id:text(o&&o.id),chantierId:text(o&&(o.chantierId||o.chantier_id)),chantier:text(o&&o.chantier),produit:text(o&&o.produit),qte:text(o&&o.qte),fournisseur:text(o&&o.fournisseur),responsable:text(o&&o.responsable),status:text(o&&o.status),notes:text(o&&o.notes)}}
+  function orderComparable(o){return {id:text(o&&o.id),chantierId:text(o&&(o.chantierId||o.chantier_id)),chantier:text(o&&o.chantier),produit:text(o&&o.produit),qte:text(o&&o.qte),prix:text(o&&o.prix),fournisseur:text(o&&o.fournisseur),responsable:text(o&&o.responsable),status:text(o&&o.status),notes:text(o&&o.notes)}}
   function docComparable(d){return {id:text(d&&d.id),commande_id:text(d&&d.commande_id),chantier:text(d&&d.chantier),type:text(d&&d.type),nom_fichier:text(d&&d.nom_fichier),url_pdf:text(d&&d.url_pdf),source:text(d&&d.source),date_document:text(d&&d.date_document),auteur:text(d&&d.auteur)}}
   function sameComparable(a,b){return JSON.stringify(a)===JSON.stringify(b)}
   function stateSignature(orderList,docList){
@@ -66,7 +65,7 @@
       const merged=overlayPending(orders,documents);
       orders=merged.orders;documents=merged.documents;
       if(typeof renderAll==='function')renderAll();
-      try{setSync(true,queue.length?'Dernier affichage chargé · modifications en attente':'Dernier affichage chargé · mise à jour en arrière-plan')}catch(e){}
+      try{setSync(true,queue.length?'Dernier affichage chargé · modifications en attente':'Dernier affichage chargé')}catch(e){}
       return true;
     }catch(e){return false}
   }
@@ -132,7 +131,6 @@
       const merged=overlayPending(remoteOrders,remoteDocs);
       const changed=applyState(merged.orders,merged.documents,true);
       lastRemoteSync=Date.now();
-      if(changed)saveLocalState();
       try{setSync(true,queue.length?'Enregistré localement · envoi en arrière-plan':'À jour')}catch(e){}
       return changed;
     }catch(e){
@@ -200,7 +198,7 @@
   if(queue.length){const merged=overlayPending(safeArray(orders),safeArray(documents));applyState(merged.orders,merged.documents,true);setTimeout(flushQueue,0)}
   else if(!hadCache)saveLocalState();
 
-  /* Le réseau ne bloque jamais le premier affichage : cache d'abord, réseau ensuite. */
+  /* Cache d'abord, puis une lecture réseau. Aucun polling court. */
   setTimeout(()=>{
     backgroundLoadAll(true,true);
     try{
@@ -210,11 +208,11 @@
     }catch(e){}
   },700);
 
+  /* Synchro distante calme : 5 min. Les écritures, elles, partent immédiatement. */
   setInterval(()=>backgroundLoadAll(true,false),REMOTE_SYNC_MS);
-  setInterval(()=>flushQueue(),FLUSH_MS);
   setInterval(()=>{try{if(!document.hidden&&typeof loadYayaChantiers==='function')loadYayaChantiers(false)}catch(e){}},YAYA_SYNC_MS);
   window.addEventListener('online',()=>{flushQueue();backgroundLoadAll(true,true)});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden){flushQueue();backgroundLoadAll(true,false)}});
 
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.2';
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.3';
 })();
