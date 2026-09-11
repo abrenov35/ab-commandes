@@ -10,7 +10,7 @@ kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
-price_new='<script src="modal-price-lock.js?v=1"></script>'
+price_new='<script src="modal-price-lock.js?v=2"></script>'
 doc_new='<script src="doc-modal-simple.js?v=2"></script>'
 
 if embed_new not in s:
@@ -90,10 +90,12 @@ for old in (
         break
 if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
-# Prix optionnel + chantier figé : chargé après le contrôleur d'édition centralisée.
+# Prix optionnel + chantier figé + responsables sans emoji + modale stable.
 for old in (
     '<script src="modal-price-lock.js?v=1"></script>\n',
+    '<script src="modal-price-lock.js?v=2"></script>\n',
     '<script src="modal-price-lock.js?v=1"></script>',
+    '<script src="modal-price-lock.js?v=2"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(detail_new,detail_new+'\n'+price_new,1)
@@ -120,4 +122,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - upload PDF Google Drive v2 + prix/chantier figé')
+print('AB COMMANDES - modale prix/chantier v2 + upload PDF Drive')
