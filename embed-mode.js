@@ -12,8 +12,8 @@
     html.ab-embed-mode,body.ab-embed-mode{background:#fff!important;min-height:0!important}
     body.ab-embed-mode .app{display:block!important;min-height:0!important}
     body.ab-embed-mode .side{display:none!important}
-    body.ab-embed-mode .main{padding:12px 14px 18px!important;max-width:none!important;margin:0!important}
-    body.ab-embed-mode #chantierFiche{margin:0!important}
+    body.ab-embed-mode .main{padding:12px 14px 8px!important;max-width:none!important;margin:0!important}
+    body.ab-embed-mode #chantierFiche{margin:0!important;padding-bottom:0!important}
     body.ab-embed-mode .fiche-back{display:none!important}
     body.ab-embed-mode #chantierFiche .yaya{display:none!important}
     body.ab-embed-mode #chantierFiche .top{margin:0 0 8px!important}
@@ -27,8 +27,9 @@
     body.ab-embed-mode .toolbar{margin:14px 0 10px!important}
     body.ab-embed-mode .toolbar h2{font-size:19px!important}
     body.ab-embed-mode .order-row{box-shadow:none!important}
+    body.ab-embed-mode .empty{margin-bottom:0!important;padding:18px!important}
     @media(max-width:760px){
-      body.ab-embed-mode .main{padding:9px!important}
+      body.ab-embed-mode .main{padding:9px 9px 4px!important}
       body.ab-embed-mode #chantierFiche .title h1{font-size:20px!important}
       body.ab-embed-mode .fiche-kpis{grid-template-columns:1fr 1fr!important}
     }
@@ -37,17 +38,24 @@
 
   function sendHeight(){
     try{
-      const h=Math.max(300,Math.min(1400,document.documentElement.scrollHeight||document.body.scrollHeight||600));
+      const contentHeight=Math.max(
+        document.body.scrollHeight||0,
+        document.body.offsetHeight||0,
+        document.documentElement.scrollHeight||0,
+        document.documentElement.offsetHeight||0
+      );
+      const h=Math.max(120,Math.min(1400,contentHeight||260));
       window.parent.postMessage({type:'AB_COMMANDES_HEIGHT',height:h},'*');
     }catch(e){}
   }
 
   const ro=new ResizeObserver(()=>requestAnimationFrame(sendHeight));
   ro.observe(document.documentElement);
+  ro.observe(document.body);
   window.addEventListener('load',sendHeight);
   window.addEventListener('resize',sendHeight);
   new MutationObserver(()=>requestAnimationFrame(sendHeight)).observe(document.body,{childList:true,subtree:true,attributes:true});
-  setTimeout(sendHeight,150);
-  setTimeout(sendHeight,700);
-  setTimeout(sendHeight,1800);
+  setTimeout(sendHeight,100);
+  setTimeout(sendHeight,400);
+  setTimeout(sendHeight,1200);
 })();
