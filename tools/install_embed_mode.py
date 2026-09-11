@@ -11,7 +11,7 @@ choice_new='<script src="choice-client-label.js?v=1"></script>'
 bg_new='<script src="background-sync.js?v=3"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-price-lock.js?v=2"></script>'
-doc_new='<script src="doc-modal-simple.js?v=2"></script>'
+doc_new='<script src="doc-modal-simple.js?v=3"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -104,8 +104,10 @@ s=s.replace(detail_new,detail_new+'\n'+price_new,1)
 for old in (
     '<script src="doc-modal-simple.js?v=1"></script>\n',
     '<script src="doc-modal-simple.js?v=2"></script>\n',
+    '<script src="doc-modal-simple.js?v=3"></script>\n',
     '<script src="doc-modal-simple.js?v=1"></script>',
     '<script src="doc-modal-simple.js?v=2"></script>',
+    '<script src="doc-modal-simple.js?v=3"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
@@ -122,4 +124,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - modale prix/chantier v2 + upload PDF Drive')
+print('AB COMMANDES - vrai upload PDF Google Drive v3 forcé dans la modale')
