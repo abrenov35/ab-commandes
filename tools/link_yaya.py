@@ -3,46 +3,12 @@ from pathlib import Path
 p = Path('index.html')
 s = p.read_text(encoding='utf-8')
 
-if "const YAYA_API=" in s:
-    print('Liaison Yaya déjà présente')
+MARKER = 'AB_COMMANDES_YAYA_CACHE_V1'
+if MARKER in s:
+    print('Liaison Yaya robuste déjà présente')
     raise SystemExit(0)
 
-old = '<div class="full"><label class="label">Chantier</label><input id="fChantier" class="field" placeholder="Ex. DUPONT"></div>'
-new = '<div class="full"><label class="label">Chantier Yaya</label><select id="fChantier" class="field"><option value="">Chargement des chantiers Yaya…</option></select><div id="yayaChantierInfo" class="small" style="margin-top:6px">Le chantier est sélectionné depuis la base Yaya.</div></div>'
-if old not in s:
-    raise SystemExit('Champ chantier attendu introuvable')
-s = s.replace(old, new, 1)
-
-old = "const GAS='https://script.google.com/macros/s/AKfycbxswcobk2vJMh0qlbxseImn1SZ7GBubSblW5LXFrRLI3zxs-M9zb3NwfUS-rVHDtoY/exec';"
-new = old + "\nconst YAYA_API='https://script.google.com/macros/s/AKfycbx6IwMFf2plAq7i8qf8qF6f6MMC-1-WynAqn1ZRqCZrVqHeE9a1ygSSTzp5uOf0L3bn/exec';"
-if old not in s:
-    raise SystemExit('Constante GAS introuvable')
-s = s.replace(old, new, 1)
-
-old = 'let orders=[],documents=[],editId=null,currentDocOrderId=null,loading=false;'
-new = 'let orders=[],documents=[],yayaChantiers=[],editId=null,currentDocOrderId=null,loading=false,yayaLoaded=false;'
-if old not in s:
-    raise SystemExit('Déclaration état introuvable')
-s = s.replace(old, new, 1)
-
-anchor = "function showSaving(v,text='Enregistrement…'){loading=v;$('#saving').textContent=text;$('#saving').classList.toggle('show',v)}"
-addition = """
-function normName(v){return String(v||'').normalize('NFD').replace(/[\\u0300-\\u036f]/g,'').trim().replace(/\\s+/g,' ').toUpperCase()}
-function yayaLabel(c){const n=String(c?.nom||'').trim(),num=String(c?.numero||'').trim();return num?n+' ('+num+')':n}
-function activeYayaChantiers(){return yayaChantiers.filter(c=>c.statut!=='Terminé'&&c.statut!=='Archivé')}
-function findYayaForOrder(o){if(!o)return null;let c=yayaChantiers.find(x=>String(x.id)===String(o.chantierId||''));if(c)return c;const k=normName(o.chantier);const hits=yayaChantiers.filter(x=>normName(x.nom)===k);return hits.length===1?hits[0]:null}
-function refreshChantierSelect(selectedId='',legacyName=''){
-  const el=$('#fChantier');if(!el)return;
-  const current=String(selectedId||'');
-  let list=activeYayaChantiers().slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
-  const selectedAll=yayaChantiers.find(c=>String(c.id)===current);
-  if(selectedAll&&!list.some(c=>String(c.id)===current))list.unshift(selectedAll);
-  el.innerHTML='<option value="">— Choisir un chantier Yaya —</option>'+list.map(c=>`<option value="${esc(c.id)}">${esc(yayaLabel(c))}</option>`).join('');
-  if(current&&list.some(c=>String(c.id)===current))el.value=current;
-  else if(legacyName){const k=normName(legacyName),hits=list.filter(c=>normName(c.nom)===k);if(hits.length===1)el.value=String(hits[0].id)}
-  const info=$('#yayaChantierInfo');if(info)info.textContent=yayaLoaded?`${list.length} chantiers actifs synchronisés depuis Yaya.`:'Connexion à Yaya…';
-}
-async function loadYayaChantiers(){
+old_loader = """async function loadYayaChantiers(){
   try{
     const r=await fetch(YAYA_API,{method:'GET',cache:'no-store'});const j=await r.json();
     if(!j.ok)throw new Error(j.error||'Réponse Yaya invalide');
@@ -50,35 +16,85 @@ async function loadYayaChantiers(){
     refreshChantierSelect($('#fChantier')?.value||'','');
     const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
   }catch(e){console.error('Yaya:',e);yayaLoaded=false;const info=$('#yayaChantierInfo');if(info)info.textContent='Impossible de charger les chantiers Yaya.'}
+}"""
+
+new_loader = """const AB_COMMANDES_YAYA_CACHE_V1='AB_COMMANDES_YAYA_CHANTIERS_V1';
+function hydrateYayaCache(){
+  try{
+    const yayaRaw=localStorage.getItem('YAYA_CACHE_DATA_V2');
+    if(yayaRaw){
+      const data=JSON.parse(yayaRaw);
+      if(Array.isArray(data?.chantiers)&&data.chantiers.length){
+        yayaChantiers=data.chantiers;yayaLoaded=true;
+        refreshChantierSelect($('#fChantier')?.value||'','');
+        const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
+        return true;
+      }
+    }
+  }catch(e){}
+  try{
+    const raw=localStorage.getItem(AB_COMMANDES_YAYA_CACHE_V1);
+    const cached=raw?JSON.parse(raw):null;
+    if(Array.isArray(cached)&&cached.length){
+      yayaChantiers=cached;yayaLoaded=true;
+      refreshChantierSelect($('#fChantier')?.value||'','');
+      const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
+      return true;
+    }
+  }catch(e){}
+  return false;
 }
-"""
-if anchor not in s:
-    raise SystemExit('Point insertion fonctions Yaya introuvable')
-s = s.replace(anchor, anchor + addition, 1)
+async function loadYayaChantiers(force=false){
+  if(!yayaChantiers.length)hydrateYayaCache();
+  let lastErr=null;
+  for(let tentative=1;tentative<=3;tentative++){
+    try{
+      const ctrl=new AbortController();
+      const timer=setTimeout(()=>ctrl.abort(),tentative===1?12000:tentative===2?16000:20000);
+      let r;
+      try{
+        const sep=YAYA_API.includes('?')?'&':'?';
+        r=await fetch(YAYA_API+sep+'_abcommandes='+Date.now()+'_'+tentative+(force?'&force=1':''),{method:'GET',cache:'no-store',signal:ctrl.signal});
+      }finally{clearTimeout(timer)}
+      const txt=await r.text();
+      let j;
+      try{j=JSON.parse(txt)}catch(e){throw new Error('Réponse Yaya invalide')}
+      if(!j.ok)throw new Error(j.error||'Réponse Yaya invalide');
+      const list=Array.isArray(j.data?.chantiers)?j.data.chantiers:[];
+      if(!list.length)throw new Error('Aucun chantier reçu de Yaya');
+      yayaChantiers=list;yayaLoaded=true;
+      try{localStorage.setItem(AB_COMMANDES_YAYA_CACHE_V1,JSON.stringify(list))}catch(e){}
+      refreshChantierSelect($('#fChantier')?.value||'','');
+      const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
+      return true;
+    }catch(e){
+      lastErr=e;
+      if(tentative<3)await new Promise(r=>setTimeout(r,500*tentative));
+    }
+  }
+  console.error('Yaya:',lastErr);
+  const cached=hydrateYayaCache();
+  yayaLoaded=!!cached;
+  const info=$('#yayaChantierInfo');
+  if(info)info.textContent=cached?`${activeYayaChantiers().length} chantiers chargés depuis Yaya.`:'Impossible de charger les chantiers Yaya.';
+  return cached;
+}"""
 
-old = "function normalizeFromSheet(o){return {...o,id:String(o.id||''),chantier:String(o.chantier||''),produit:String(o.produit||''),qte:String(o.qte||''),fournisseur:String(o.fournisseur||''),responsable:String(o.responsable||''),date:String(o.date||''),start:String(o.start||''),status:STATUSES[o.status]?o.status:'choice'}}"
-new = "function normalizeFromSheet(o){return {...o,id:String(o.id||''),chantierId:String(o.chantierId||o.chantier_id||''),chantier:String(o.chantier||''),produit:String(o.produit||''),qte:String(o.qte||''),fournisseur:String(o.fournisseur||''),responsable:String(o.responsable||''),date:String(o.date||''),start:String(o.start||''),status:STATUSES[o.status]?o.status:'choice'}}"
-if old not in s:
-    raise SystemExit('Normalisation commande introuvable')
-s = s.replace(old, new, 1)
+if old_loader not in s:
+    raise SystemExit('Fonction loadYayaChantiers attendue introuvable')
+s = s.replace(old_loader, new_loader, 1)
 
-old = "function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';$('#fChantier').value=o?.chantier||'';"
-new = "function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';const yc=findYayaForOrder(o);refreshChantierSelect(yc?.id||o?.chantierId||'',o?.chantier||'');"
-if old not in s:
-    raise SystemExit('openModal attendu introuvable')
-s = s.replace(old, new, 1)
+old_modal = "function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';const yc=findYayaForOrder(o);refreshChantierSelect(yc?.id||o?.chantierId||'',o?.chantier||'');if(!o)$('#fChantier').value='';$('#fProduit').value=o?.produit||'';$('#fQte').value=o?.qte||'';$('#fFournisseur').value=o?.fournisseur||'';$('#fResp').value=o?.responsable||'Solenn 🍭';$('#fStatus').innerHTML=Object.entries(STATUSES).map(([k,s])=>`<option value=\"${k}\">${s.label}</option>`).join('');$('#fStatus').value=o?.status||'todo';$('#fNotes').value=o?.notes||'';$('#modal').classList.add('show')}"
+new_modal = "async function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';if(!yayaChantiers.length)hydrateYayaCache();if(!yayaChantiers.length)await loadYayaChantiers(true);const yc=findYayaForOrder(o);refreshChantierSelect(yc?.id||o?.chantierId||'',o?.chantier||'');if(!o)$('#fChantier').value='';$('#fProduit').value=o?.produit||'';$('#fQte').value=o?.qte||'';$('#fFournisseur').value=o?.fournisseur||'';$('#fResp').value=o?.responsable||'Solenn 🍭';$('#fStatus').innerHTML=Object.entries(STATUSES).map(([k,s])=>`<option value=\"${k}\">${s.label}</option>`).join('');$('#fStatus').value=o?.status||'todo';$('#fNotes').value=o?.notes||'';$('#modal').classList.add('show')}"
+if old_modal not in s:
+    raise SystemExit('openModal simplifiée introuvable')
+s = s.replace(old_modal, new_modal, 1)
 
-old = "async function submit(){const old=editId?orders.find(x=>x.id===editId):{};const data={...old,id:editId||uid(),chantier:$('#fChantier').value.trim().toUpperCase(),produit:$('#fProduit').value.trim(),qte:$('#fQte').value.trim(),fournisseur:$('#fFournisseur').value.trim(),responsable:$('#fResp').value,date:$('#fDate').value,start:$('#fStart').value,status:$('#fStatus').value,qte_commandee:$('#fQteCommandee').value.trim(),qte_recue:$('#fQteRecue').value.trim(),date_commande:$('#fDateCommande').value,date_livraison:$('#fDateLivraison').value,notes:$('#fNotes').value.trim()};if(!data.chantier||!data.produit){alert('Chantier et produit sont obligatoires.');return}closeModal();await saveOrder(data)}"
-new = "async function submit(){const old=editId?orders.find(x=>x.id===editId):{};const chantierId=$('#fChantier').value;const yc=yayaChantiers.find(c=>String(c.id)===String(chantierId));const chantier=yc?String(yc.nom||'').trim():String(old?.chantier||'').trim();const data={...old,id:editId||uid(),chantierId,chantier,produit:$('#fProduit').value.trim(),qte:$('#fQte').value.trim(),fournisseur:$('#fFournisseur').value.trim(),responsable:$('#fResp').value,date:$('#fDate').value,start:$('#fStart').value,status:$('#fStatus').value,qte_commandee:$('#fQteCommandee').value.trim(),qte_recue:$('#fQteRecue').value.trim(),date_commande:$('#fDateCommande').value,date_livraison:$('#fDateLivraison').value,notes:$('#fNotes').value.trim()};if(!data.chantierId||!data.chantier||!data.produit){alert('Choisis un chantier Yaya et indique le produit.');return}closeModal();await saveOrder(data)}"
-if old not in s:
-    raise SystemExit('submit attendu introuvable')
-s = s.replace(old, new, 1)
-
-old = 'renderAll();loadAll();setInterval(()=>loadAll(true),60000);'
-new = 'renderAll();loadYayaChantiers();loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
-if old not in s:
-    raise SystemExit('Initialisation attendue introuvable')
-s = s.replace(old, new, 1)
+old_init = "renderAll();loadYayaChantiers();loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);"
+new_init = "renderAll();hydrateYayaCache();loadYayaChantiers();loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);"
+if old_init not in s:
+    raise SystemExit('Initialisation Yaya introuvable')
+s = s.replace(old_init, new_init, 1)
 
 p.write_text(s, encoding='utf-8')
-print('Liaison Yaya ajoutée')
+print('Liaison Yaya renforcée')
