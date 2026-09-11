@@ -295,7 +295,7 @@ $$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.class
 $('#addBtn').onclick=()=>openModal();$('#addBtnTop').onclick=()=>openModal();$('#ficheBackBtn').onclick=closeChantierFiche;$('#ficheAddBtn').onclick=addProductForCurrentChantier;$('#cancelBtn').onclick=closeModal;$('#saveBtn').onclick=submit;$('#modal').onclick=e=>{if(e.target===$('#modal'))closeModal()};$('#closeDocBtn').onclick=closeDocs;$('#addDocBtn').onclick=addDoc;$('#docModal').onclick=e=>{if(e.target===$('#docModal'))closeDocs()};$('#search').oninput=renderAll;$('#filterResp').onchange=renderAll;$('#filterStatus').onchange=renderAll;
 renderAll();hydrateYayaCache();tryOpenDeepLink();loadYayaChantiers().then(tryOpenDeepLink);loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);
 </script>
-<script src="show-all-yaya-chantiers.js?v=allchantiers-4"></script>
+<script src="show-all-yaya-chantiers.js?v=allchantiers-5"></script>
 <script src="embed-mode.js?v=4"></script>
 </body>
 </html>
