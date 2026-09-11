@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f8fb">
+<title>AB COMMANDES</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--text:#14213d;--muted:#76839a;--line:#e7ebf1;--blue:#2f6fed;--orange:#ff7a45;--green:#35c889;--red:#ed3656;--purple:#b98bf4;--shadow:0 8px 24px rgba(20,33,61,.06)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}button,input,select{font:inherit}.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}.side{background:#fff;border-right:1px solid var(--line);padding:22px 16px;display:flex;flex-direction:column;gap:24px;position:sticky;top:0;height:100vh}.brand{font-weight:900;font-size:20px;letter-spacing:.2px}.brand small{display:block;color:#7d8ba2;font-weight:600;font-size:11px;margin-top:4px}.nav{display:grid;gap:8px}.nav button{border:0;background:transparent;padding:12px 14px;border-radius:10px;text-align:left;font-weight:700;color:#536078;cursor:pointer}.nav button.active{background:#edf4ff;color:#1f5cc6}.sync{margin-top:auto;font-size:12px;color:#718096}.sync b{color:#20324f}.dot-sync{width:10px;height:10px;background:var(--green);border-radius:50%;display:inline-block;margin-right:8px}.main{padding:28px;max-width:1500px;width:100%;margin:0 auto}.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}.title h1{margin:0;font-size:32px;line-height:1.1}.title p{margin:8px 0 0;color:#8a98ae}.yaya{border:1px solid #dbe5f2;background:#fff;border-radius:10px;padding:10px 14px;font-weight:800;color:#1d5d72}.filters{display:grid;grid-template-columns:minmax(260px,1.5fr) 220px 220px auto;gap:12px;margin:28px 0 20px}.field{background:#fff;border:1px solid #dfe5ee;border-radius:10px;padding:11px 13px;color:var(--text);width:100%;outline:none}.field:focus{border-color:#9cbcf9;box-shadow:0 0 0 3px #e9f1ff}.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:800;cursor:pointer;background:#14213d;color:#fff}.btn.secondary{background:#fff;color:#24364f;border:1px solid #dfe5ee}.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}.kpi{padding:22px;display:flex;align-items:center;gap:16px}.status-dot{width:34px;height:34px;border-radius:50%;flex:0 0 auto}.orange{background:var(--orange)}.blue{background:var(--blue)}.green{background:var(--green)}.red{background:var(--red)}.purple{background:var(--purple)}.kpi strong{font-size:34px;display:block;line-height:1}.kpi span{font-weight:800;font-size:16px}.middle{display:grid;grid-template-columns:1.6fr .9fr;gap:14px;margin-top:14px}.panel{padding:20px}.panel h2{font-size:20px;margin:0 0 16px}.actions{display:grid}.action{display:grid;grid-template-columns:150px 1fr 170px 28px;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--line)}.action:first-child{border-top:0}.action .name{font-weight:900}.action .desc{color:#718096}.status-label{display:flex;align-items:center;gap:9px;font-weight:700}.mini-dot{width:14px;height:14px;border-radius:50%;flex:0 0 auto}.legend{display:grid;gap:16px}.legend .status-label{font-size:17px}.table-card{margin-top:14px;overflow:hidden}.table-head{padding:20px 20px 10px;display:flex;justify-content:space-between;align-items:center}.table-head h2{margin:0;font-size:20px}.table-wrap{overflow:auto}.chantier-table{width:100%;border-collapse:collapse;min-width:850px}.chantier-table th{background:#f0f3f7;color:#5f6d82;text-align:left;padding:11px 16px;font-size:13px}.chantier-table td{padding:14px 16px;border-top:1px solid var(--line);vertical-align:middle}.progress{height:10px;border-radius:99px;background:#e6ebf1;overflow:hidden;width:170px;display:inline-block;vertical-align:middle;margin-right:10px}.progress span{display:block;height:100%;background:#ffbf34;border-radius:99px}.progress.ok span{background:var(--green)}.pill{display:inline-block;padding:6px 11px;border-radius:99px;font-size:12px;font-weight:800;background:#ffe7eb;color:#d22e49}.pill.ok{background:#dcf7ea;color:#16865b}.pill.orange{background:#fff0e8;color:#d85a23}.view{display:none}.view.active{display:block}.toolbar{display:flex;gap:10px;justify-content:space-between;align-items:center;margin:24px 0 14px}.toolbar h2{margin:0}.list{display:grid;gap:10px}.order-row{display:grid;grid-template-columns:1.5fr 100px 160px 150px 150px 180px 44px;gap:10px;align-items:center;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:12px}.order-row.header{background:#eef2f6;font-size:12px;font-weight:800;color:#617086}.order-row input,.order-row select{width:100%;border:1px solid #dfe5ee;border-radius:8px;padding:9px 10px;background:#fff}.status-select{font-weight:800}.icon-btn{border:0;background:#f6f7f9;border-radius:8px;width:36px;height:36px;cursor:pointer}.modal{position:fixed;inset:0;background:rgba(9,19,38,.38);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}.modal.show{display:flex}.dialog{width:min(600px,100%);background:#fff;border-radius:16px;box-shadow:0 24px 80px rgba(0,0,0,.22);padding:22px}.dialog h3{margin:0 0 16px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.form-grid .full{grid-column:1/-1}.label{font-size:12px;font-weight:800;color:#66748a;margin-bottom:6px;display:block}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}.empty{padding:28px;text-align:center;color:#7d899e;background:#fff;border:1px dashed #cfd7e3;border-radius:12px}.small{font-size:12px;color:#7a879c}.mobile-title{display:none}
+@media(max-width:1050px){.app{grid-template-columns:1fr}.side{height:auto;position:static;border-right:0;border-bottom:1px solid var(--line);padding:12px 14px;display:block}.brand{display:none}.nav{display:flex;overflow:auto}.nav button{white-space:nowrap}.sync{display:none}.main{padding:18px}.filters{grid-template-columns:1fr 1fr}.kpis{grid-template-columns:repeat(2,1fr)}.middle{grid-template-columns:1fr}.action{grid-template-columns:110px 1fr 150px 20px}.mobile-title{display:block;font-weight:900;margin-bottom:10px}}
+@media(max-width:700px){.title h1{font-size:25px}.yaya{display:none}.filters{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.kpi{padding:16px;gap:12px}.status-dot{width:26px;height:26px}.kpi strong{font-size:28px}.action{grid-template-columns:1fr}.action .chev{display:none}.order-row,.order-row.header{grid-template-columns:1fr}.order-row.header{display:none}.order-row>div:before{content:attr(data-label);display:block;font-size:10px;font-weight:800;color:#7b879a;margin-bottom:4px}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.toolbar{align-items:flex-start;flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">AB COMMANDES<small>Suivi des commandes chantier</small></div>
+    <nav class="nav">
+      <button class="active" data-view="overview">⌂ Vue d'ensemble</button>
+      <button data-view="chantiers">🛠 Chantiers</button>
+      <button data-view="commandes">📦 Commandes</button>
+      <button data-view="fournisseurs">🚚 Fournisseurs</button>
+    </nav>
+    <div class="sync"><span class="dot-sync"></span><b>Connecté à Yaya</b><br><span id="lastSave">Données locales</span></div>
+  </aside>
+  <main class="main">
+    <div class="mobile-title">AB COMMANDES</div>
+    <section id="overview" class="view active">
+      <div class="top"><div class="title"><h1>Vue d'ensemble des commandes</h1><p>Les points essentiels à traiter</p></div><div class="yaya">Yaya · suivi commandes</div></div>
+      <div class="filters">
+        <input id="search" class="field" placeholder="Rechercher un chantier, une commande...">
+        <select id="filterResp" class="field"><option value="">Tous les responsables</option></select>
+        <select id="filterStatus" class="field"><option value="">Tous les statuts</option></select>
+        <button id="addBtnTop" class="btn">+ Ajouter</button>
+      </div>
+      <div class="kpis">
+        <div class="card kpi"><span class="status-dot orange"></span><div><strong id="kpiTodo">0</strong><span>À commander</span></div></div>
+        <div class="card kpi"><span class="status-dot blue"></span><div><strong id="kpiOrdered">0</strong><span>Commandé</span></div></div>
+        <div class="card kpi"><span class="status-dot green"></span><div><strong id="kpiReceived">0</strong><span>Reçu</span></div></div>
+        <div class="card kpi"><span class="status-dot red"></span><div><strong id="kpiProblem">0</strong><span>Problème</span></div></div>
+      </div>
+      <div class="middle">
+        <div class="card panel"><h2>⚠ Actions prioritaires</h2><div id="priorityList" class="actions"></div></div>
+        <div class="card panel"><h2>Légende des statuts</h2><div class="legend" id="legend"></div></div>
+      </div>
+      <div class="card table-card"><div class="table-head"><h2>🏢 Chantiers à sécuriser</h2><span class="small">commandes non reçues</span></div><div class="table-wrap"><table class="chantier-table"><thead><tr><th>Chantier</th><th>Démarrage</th><th>Responsable</th><th>État commandes</th><th>Alerte</th></tr></thead><tbody id="chantierSummary"></tbody></table></div></div>
+    </section>
+
+    <section id="commandes" class="view">
+      <div class="top"><div class="title"><h1>Commandes</h1><p>Une ligne = un besoin important du chantier</p></div></div>
+      <div class="toolbar"><h2>Produits à suivre</h2><button id="addBtn" class="btn">+ Ajouter un produit</button></div>
+      <div class="order-row header"><div>Produit / besoin</div><div>Qté</div><div>Fournisseur</div><div>Responsable</div><div>Date nécessaire</div><div>Statut</div><div></div></div>
+      <div id="ordersList" class="list"></div>
+    </section>
+
+    <section id="chantiers" class="view"><div class="top"><div class="title"><h1>Chantiers</h1><p>Vue simple de la sécurisation des commandes</p></div></div><div class="card table-card" style="margin-top:24px"><div class="table-wrap"><table class="chantier-table"><thead><tr><th>Chantier</th><th>Démarrage</th><th>Responsable</th><th>État commandes</th><th>Alerte</th></tr></thead><tbody id="chantierSummary2"></tbody></table></div></div></section>
+
+    <section id="fournisseurs" class="view"><div class="top"><div class="title"><h1>Fournisseurs</h1><p>Commandes regroupées par fournisseur</p></div></div><div id="supplierList" class="list" style="margin-top:24px"></div></section>
+  </main>
+</div>
+
+<div id="modal" class="modal">
+  <div class="dialog">
+    <h3 id="modalTitle">Ajouter un produit</h3>
+    <div class="form-grid">
+      <div class="full"><label class="label">Chantier</label><input id="fChantier" class="field" placeholder="Ex. DUPONT"></div>
+      <div><label class="label">Produit / besoin</label><input id="fProduit" class="field" placeholder="Ex. Faïence SDB"></div>
+      <div><label class="label">Quantité / unité</label><input id="fQte" class="field" placeholder="Ex. 28 m²"></div>
+      <div><label class="label">Fournisseur</label><input id="fFournisseur" class="field" placeholder="Ex. CDO"></div>
+      <div><label class="label">Responsable</label><select id="fResp" class="field"><option>Solenn 🍭</option><option>Mathieu ⚽️</option><option>Morvan ⛑️</option><option>Pascale</option><option>Younès</option></select></div>
+      <div><label class="label">Date nécessaire</label><input id="fDate" type="date" class="field"></div>
+      <div><label class="label">Démarrage chantier</label><input id="fStart" type="date" class="field"></div>
+      <div class="full"><label class="label">Statut</label><select id="fStatus" class="field"></select></div>
+    </div>
+    <div class="dialog-actions"><button id="cancelBtn" class="btn secondary">Annuler</button><button id="saveBtn" class="btn">Enregistrer</button></div>
+  </div>
+</div>
+
+<script>
+const STATUSES={
+  choice:{label:'Choix client à faire',color:'purple'},
+  todo:{label:'À commander',color:'orange'},
+  ordered:{label:'Commandé',color:'blue'},
+  received:{label:'Reçu',color:'green'},
+  problem:{label:'Problème',color:'red'}
+};
+const DEFAULTS=[
+ {id:crypto.randomUUID(),chantier:'DUPONT',produit:'Faïence SDB',qte:'28 m²',fournisseur:'CDO',responsable:'Solenn 🍭',date:'2026-09-22',start:'2026-09-28',status:'ordered'},
+ {id:crypto.randomUUID(),chantier:'DUPONT',produit:'Meuble vasque',qte:'1',fournisseur:'Aubade',responsable:'Solenn 🍭',date:'2026-09-25',start:'2026-09-28',status:'choice'},
+ {id:crypto.randomUUID(),chantier:'DUPONT',produit:'Receveur',qte:'1',fournisseur:'Téréva',responsable:'Solenn 🍭',date:'2026-09-20',start:'2026-09-28',status:'todo'},
+ {id:crypto.randomUUID(),chantier:'MARTIN',produit:'Paroi douche',qte:'1',fournisseur:'CDO',responsable:'Mathieu ⚽️',date:'2026-09-24',start:'2026-09-30',status:'problem'},
+ {id:crypto.randomUUID(),chantier:'MARTIN',produit:'Carrelage sol',qte:'35 m²',fournisseur:'Point.P',responsable:'Mathieu ⚽️',date:'2026-09-26',start:'2026-09-30',status:'ordered'},
+ {id:crypto.randomUUID(),chantier:'LABIGANG 2',produit:'Cuisine',qte:'1',fournisseur:'Cuisibane',responsable:'Pascale',date:'2026-10-01',start:'2026-10-03',status:'received'},
+ {id:crypto.randomUUID(),chantier:'FIRMINISKI',produit:'Parquet',qte:'160 m²',fournisseur:'Point.P',responsable:'Morvan ⛑️',date:'2026-10-01',start:'2026-10-05',status:'todo'},
+ {id:crypto.randomUUID(),chantier:'FIRMINISKI',produit:'Sous-couche',qte:'160 m²',fournisseur:'Point.P',responsable:'Morvan ⛑️',date:'2026-10-01',start:'2026-10-05',status:'ordered'}
+];
+let orders=JSON.parse(localStorage.getItem('ab-commandes-v1')||'null')||DEFAULTS;
+let editId=null;
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+function save(){localStorage.setItem('ab-commandes-v1',JSON.stringify(orders));$('#lastSave').textContent='Enregistré '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});renderAll()}
+function statusHtml(key){const s=STATUSES[key];return `<span class="status-label"><span class="mini-dot ${s.color}"></span>${s.label}</span>`}
+function fmtDate(v){if(!v)return '—';const [y,m,d]=v.split('-');return `${d}/${m}`}
+function filtered(){const q=$('#search').value.trim().toLowerCase(),r=$('#filterResp').value,st=$('#filterStatus').value;return orders.filter(o=>(!q||[o.chantier,o.produit,o.fournisseur].join(' ').toLowerCase().includes(q))&&(!r||o.responsable===r)&&(!st||o.status===st))}
+function refreshFilters(){const currentR=$('#filterResp').value,currentS=$('#filterStatus').value;$('#filterResp').innerHTML='<option value="">Tous les responsables</option>'+[...new Set(orders.map(o=>o.responsable))].sort().map(x=>`<option>${x}</option>`).join('');$('#filterStatus').innerHTML='<option value="">Tous les statuts</option>'+Object.entries(STATUSES).map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');$('#filterResp').value=currentR;$('#filterStatus').value=currentS}
+function renderLegend(){$('#legend').innerHTML=Object.entries(STATUSES).map(([k,s])=>statusHtml(k)).join('')}
+function renderKPIs(){const a=filtered();$('#kpiTodo').textContent=a.filter(o=>o.status==='todo').length;$('#kpiOrdered').textContent=a.filter(o=>o.status==='ordered').length;$('#kpiReceived').textContent=a.filter(o=>o.status==='received').length;$('#kpiProblem').textContent=a.filter(o=>o.status==='problem').length}
+function renderPriority(){const rank={problem:0,todo:1,choice:2,ordered:3,received:9};const a=filtered().filter(o=>o.status!=='received').sort((x,y)=>rank[x.status]-rank[y.status]||x.date.localeCompare(y.date)).slice(0,6);$('#priorityList').innerHTML=a.length?a.map(o=>`<div class="action"><div class="name">${o.chantier}</div><div class="desc">${o.produit}</div><div>${statusHtml(o.status)}</div><div class="chev">›</div></div>`).join(''):'<div class="empty">Aucune action prioritaire.</div>'}
+function chantierData(){const map=new Map();filtered().forEach(o=>{if(!map.has(o.chantier))map.set(o.chantier,{chantier:o.chantier,start:o.start,responsable:o.responsable,all:0,received:0,problem:0,todo:0,choice:0});const x=map.get(o.chantier);x.all++;if(o.status==='received')x.received++;if(o.status==='problem')x.problem++;if(o.status==='todo')x.todo++;if(o.status==='choice')x.choice++});return [...map.values()].sort((a,b)=>(a.start||'9999').localeCompare(b.start||'9999'))}
+function chantierRows(){return chantierData().map(x=>{const pct=x.all?Math.round(x.received/x.all*100):0;let alert='Aucune',cls='ok';if(x.problem){alert=`${x.problem} problème${x.problem>1?'s':''}`;cls=''}else if(x.todo){alert=`${x.todo} à commander`;cls=''}else if(x.choice){alert=`${x.choice} choix client`;cls='orange'}return `<tr><td><b>${x.chantier}</b></td><td>${fmtDate(x.start)}</td><td>${x.responsable}</td><td><span class="progress ${pct===100?'ok':''}"><span style="width:${pct}%"></span></span>${x.received} / ${x.all} reçues</td><td><span class="pill ${cls}">${alert}</span></td></tr>`}).join('')}
+function renderChantiers(){const rows=chantierRows()||'<tr><td colspan="5">Aucun chantier</td></tr>';$('#chantierSummary').innerHTML=rows;$('#chantierSummary2').innerHTML=rows}
+function renderOrders(){const list=$('#ordersList');const a=filtered();if(!a.length){list.innerHTML='<div class="empty">Aucun produit à afficher.</div>';return}list.innerHTML=a.map(o=>`<div class="order-row" data-id="${o.id}"><div data-label="Produit"><b>${o.chantier}</b><br><span class="small">${o.produit}</span></div><div data-label="Quantité">${o.qte||'—'}</div><div data-label="Fournisseur">${o.fournisseur||'—'}</div><div data-label="Responsable">${o.responsable||'—'}</div><div data-label="Date nécessaire">${fmtDate(o.date)}</div><div data-label="Statut"><select class="status-select" data-status-id="${o.id}">${Object.entries(STATUSES).map(([k,s])=>`<option value="${k}" ${o.status===k?'selected':''}>${s.label}</option>`).join('')}</select></div><div><button class="icon-btn edit" title="Modifier">✎</button><button class="icon-btn del" title="Supprimer">×</button></div></div>`).join('');$$('[data-status-id]').forEach(el=>el.onchange=()=>{const o=orders.find(x=>x.id===el.dataset.statusId);if(o){o.status=el.value;save()}});$$('.edit').forEach(b=>b.onclick=()=>openModal(b.closest('.order-row').dataset.id));$$('.del').forEach(b=>b.onclick=()=>{const id=b.closest('.order-row').dataset.id;if(confirm('Supprimer cette ligne ?')){orders=orders.filter(x=>x.id!==id);save()}})}
+function renderSuppliers(){const map=new Map();orders.forEach(o=>{const f=o.fournisseur||'Non défini';if(!map.has(f))map.set(f,[]);map.get(f).push(o)});$('#supplierList').innerHTML=[...map.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([f,a])=>`<div class="card panel"><h2>${f}</h2><div class="small">${a.length} ligne${a.length>1?'s':''} · ${a.filter(x=>x.status==='todo').length} à commander · ${a.filter(x=>x.status==='ordered').length} commandée${a.filter(x=>x.status==='ordered').length>1?'s':''}</div></div>`).join('')||'<div class="empty">Aucun fournisseur.</div>'}
+function renderAll(){refreshFilters();renderLegend();renderKPIs();renderPriority();renderChantiers();renderOrders();renderSuppliers()}
+function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';$('#fChantier').value=o?.chantier||'';$('#fProduit').value=o?.produit||'';$('#fQte').value=o?.qte||'';$('#fFournisseur').value=o?.fournisseur||'';$('#fResp').value=o?.responsable||'Solenn 🍭';$('#fDate').value=o?.date||'';$('#fStart').value=o?.start||'';$('#fStatus').innerHTML=Object.entries(STATUSES).map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');$('#fStatus').value=o?.status||'choice';$('#modal').classList.add('show')}
+function closeModal(){$('#modal').classList.remove('show');editId=null}
+function submit(){const data={chantier:$('#fChantier').value.trim().toUpperCase(),produit:$('#fProduit').value.trim(),qte:$('#fQte').value.trim(),fournisseur:$('#fFournisseur').value.trim(),responsable:$('#fResp').value,date:$('#fDate').value,start:$('#fStart').value,status:$('#fStatus').value};if(!data.chantier||!data.produit){alert('Chantier et produit sont obligatoires.');return}if(editId){Object.assign(orders.find(x=>x.id===editId),data)}else orders.push({id:crypto.randomUUID(),...data});save();closeModal()}
+$$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active')});
+$('#addBtn').onclick=()=>openModal();$('#addBtnTop').onclick=()=>openModal();$('#cancelBtn').onclick=closeModal;$('#saveBtn').onclick=submit;$('#modal').onclick=e=>{if(e.target===$('#modal'))closeModal()};$('#search').oninput=renderAll;$('#filterResp').onchange=renderAll;$('#filterStatus').onchange=renderAll;
+renderAll();
+</script>
+</body>
+</html>
