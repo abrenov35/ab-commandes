@@ -4,37 +4,33 @@
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
 
-  const STYLE_ID='ab-commandes-doc-modal-drive-style-v2';
+  const STYLE_ID='ab-commandes-doc-modal-drive-style-v3';
   const MAX_BYTES=8*1024*1024;
   let selectedFile=null;
   let uploading=false;
 
   function injectStyle(){
     if(document.getElementById(STYLE_ID))return;
+    ['ab-commandes-doc-modal-drive-style-v2','ab-commandes-doc-modal-simple-style-v1'].forEach(id=>document.getElementById(id)?.remove());
     const style=document.createElement('style');
     style.id=STYLE_ID;
     style.textContent=`
-      body.ab-embed-mode #docModal .notice{display:none!important}
-      body.ab-embed-mode #docModal .dialog{width:min(470px,calc(100% - 8px))!important;max-width:470px!important}
-      body.ab-embed-mode #docModal .form-grid{display:none!important}
-      body.ab-embed-mode #docModal #docList:empty{display:none!important}
-      body.ab-embed-mode #docModal .dialog-actions{margin-top:10px!important}
-      body.ab-embed-mode #docModal #addDocBtn:disabled{opacity:.45!important;cursor:not-allowed!important}
+      #docModal .notice,#docModal .form-grid{display:none!important}
+      #docModal .dialog{width:min(470px,calc(100% - 8px))!important;max-width:470px!important}
+      #docModal #docList:empty{display:none!important}
+      #docModal .dialog-actions{margin-top:10px!important}
+      #docModal #addDocBtn:disabled{opacity:.45!important;cursor:not-allowed!important}
       #abDriveUploadBox{margin-top:4px}
-      #abDriveFile{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
-      #abDriveDrop{
-        display:flex;align-items:center;justify-content:center;min-height:92px;padding:16px;
-        border:2px dashed #cfd8e6;border-radius:12px;background:#fafcff;cursor:pointer;text-align:center;
-        transition:.15s ease;border-color:.15s ease;background:.15s ease;
-      }
+      #abDriveFile{position:absolute!important;opacity:0!important;pointer-events:none!important;width:1px!important;height:1px!important}
+      #abDriveDrop{display:flex;align-items:center;justify-content:center;min-height:98px;padding:16px;border:2px dashed #cfd8e6;border-radius:12px;background:#fafcff;cursor:pointer;text-align:center;transition:.15s ease}
       #abDriveDrop:hover,#abDriveDrop.ab-drag{border-color:#7ba5e8;background:#f2f7ff}
-      #abDriveDrop strong{display:block;color:#16345c;font-size:14px;margin-bottom:3px}
+      #abDriveDrop strong{display:block;color:#16345c;font-size:14px;margin-bottom:4px}
       #abDriveDrop span{display:block;color:#7a879c;font-size:11px}
       #abDriveFileMeta{margin-top:8px;padding:8px 10px;border-radius:9px;background:#f6f8fb;color:#33445f;font-size:12px;display:none}
       #abDriveStatus{margin-top:8px;font-size:12px;color:#64748b;min-height:16px}
       #abDriveStatus.ok{color:#13865b;font-weight:700}
       #abDriveStatus.err{color:#c52c48;font-weight:700}
-      body.ab-embed-mode #docModal .doc-list{margin-top:12px!important}
+      #docModal .doc-list{margin-top:12px!important}
     `;
     document.head.appendChild(style);
   }
@@ -57,10 +53,21 @@
     return (n/(1024*1024)).toFixed(1).replace('.0','')+' Mo';
   }
 
+  function legacyFieldsOff(){
+    const modal=document.getElementById('docModal');
+    if(!modal)return;
+    const legacy=modal.querySelector('.form-grid');
+    if(legacy){legacy.hidden=true;legacy.style.setProperty('display','none','important')}
+    const notice=modal.querySelector('.notice');
+    if(notice){notice.hidden=true;notice.style.setProperty('display','none','important')}
+  }
+
   function ensureUploadUi(){
+    injectStyle();
+    legacyFieldsOff();
     const modal=document.getElementById('docModal');
     const dialog=modal?.querySelector('.dialog');
-    if(!dialog)return;
+    if(!dialog)return null;
 
     let box=document.getElementById('abDriveUploadBox');
     if(box)return box;
@@ -76,7 +83,7 @@
       <div id="abDriveStatus"></div>`;
 
     const actions=dialog.querySelector('.dialog-actions');
-    dialog.insertBefore(box,actions||dialog.firstChild?.nextSibling||null);
+    if(actions)dialog.insertBefore(box,actions);else dialog.appendChild(box);
 
     const input=box.querySelector('#abDriveFile');
     const drop=box.querySelector('#abDriveDrop');
@@ -84,7 +91,12 @@
     drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click()}});
     ['dragenter','dragover'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.add('ab-drag')}));
     ['dragleave','drop'].forEach(type=>drop.addEventListener(type,e=>{e.preventDefault();drop.classList.remove('ab-drag')}));
-    drop.addEventListener('drop',e=>{const f=e.dataTransfer?.files?.[0]||null;if(f){setSelected(f);try{const dt=new DataTransfer();dt.items.add(f);input.files=dt.files}catch(_){}}});
+    drop.addEventListener('drop',e=>{
+      const f=e.dataTransfer?.files?.[0]||null;
+      if(!f)return;
+      setSelected(f);
+      try{const dt=new DataTransfer();dt.items.add(f);input.files=dt.files}catch(_){ }
+    });
     return box;
   }
 
@@ -121,8 +133,8 @@
 
   async function waitForDocument(id){
     if(typeof jsonp!=='function')return null;
-    for(let i=0;i<8;i++){
-      await sleep(i===0?500:750);
+    for(let i=0;i<10;i++){
+      await sleep(i===0?500:700);
       try{
         const res=await jsonp('documents');
         if(res&&res.ok&&Array.isArray(res.documents)){
@@ -171,19 +183,17 @@
         body:JSON.stringify(payload)
       });
 
-      status('Fichier reçu. Vérification dans Drive…');
+      status('Fichier reçu. Enregistrement…');
       const found=await waitForDocument(docId);
-      if(found){
-        selectedFile=null;
-        const input=document.getElementById('abDriveFile');if(input)input.value='';
-        const meta=document.getElementById('abDriveFileMeta');if(meta){meta.style.display='none';meta.textContent=''}
-        status('PDF stocké dans Google Drive.','ok');
-        try{if(typeof renderAll==='function')renderAll()}catch(_){ }
-        try{if(typeof renderDocList==='function')renderDocList()}catch(_){ }
-        refreshDocModal();
-      }else{
-        status('Upload envoyé. La liaison Drive/Sheet attend le déploiement du backend.','err');
-      }
+      if(!found)throw new Error('Le backend actuel ne confirme pas encore l’upload Drive. Redéploie le Web App Apps Script avec le Code.gs actuel.');
+
+      selectedFile=null;
+      const input=document.getElementById('abDriveFile');if(input)input.value='';
+      const meta=document.getElementById('abDriveFileMeta');if(meta){meta.style.display='none';meta.textContent=''}
+      status('PDF stocké dans Google Drive et lié dans le Sheet.','ok');
+      try{if(typeof renderAll==='function')renderAll()}catch(_){ }
+      try{if(typeof renderDocList==='function')renderDocList()}catch(_){ }
+      refreshDocModal();
     }catch(err){
       console.error('Upload Drive',err);
       status(err&&err.message?err.message:'Upload impossible.','err');
@@ -195,9 +205,10 @@
   }
 
   function refreshDocModal(){
+    legacyFieldsOff();
+    ensureUploadUi();
     const modal=document.getElementById('docModal');
     if(!modal)return;
-    ensureUploadUi();
 
     const count=docsForCurrent().length;
     const title=document.getElementById('docTitle');
@@ -218,7 +229,7 @@
   ensureUploadUi();
 
   try{
-    if(typeof openDocs==='function'&&!openDocs.__abDriveUploadWrapped){
+    if(typeof openDocs==='function'&&!openDocs.__abDriveUploadWrappedV3){
       const previous=openDocs;
       const wrapped=function(){
         const out=previous.apply(this,arguments);
@@ -226,27 +237,29 @@
         const input=document.getElementById('abDriveFile');if(input)input.value='';
         setSelected(null);
         refreshDocModal();
+        requestAnimationFrame(refreshDocModal);
+        setTimeout(refreshDocModal,50);
         return out;
       };
-      wrapped.__abDriveUploadWrapped=true;
+      wrapped.__abDriveUploadWrappedV3=true;
       openDocs=wrapped;
     }
   }catch(e){console.error('AB COMMANDES · modale Drive',e)}
 
   try{
-    if(typeof renderDocList==='function'&&!renderDocList.__abDriveUploadWrapped){
+    if(typeof renderDocList==='function'&&!renderDocList.__abDriveUploadWrappedV3){
       const previous=renderDocList;
       const wrapped=function(){
         const out=previous.apply(this,arguments);
         refreshDocModal();
         return out;
       };
-      wrapped.__abDriveUploadWrapped=true;
+      wrapped.__abDriveUploadWrappedV3=true;
       renderDocList=wrapped;
     }
   }catch(e){console.error('AB COMMANDES · liste Drive',e)}
 
   const add=document.getElementById('addDocBtn');if(add)add.onclick=uploadCurrentFile;
   window.addEventListener('load',refreshDocModal,{once:true});
-  window.__AB_COMMANDES_DOC_MODAL_SIMPLE_VERSION='2.0';
+  window.__AB_COMMANDES_DOC_MODAL_SIMPLE_VERSION='3.0';
 })();
