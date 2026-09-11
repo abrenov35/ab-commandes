@@ -3,6 +3,9 @@
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
 
+  const DATA_CACHE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
+  const CACHE_MAX_AGE_MS=30*24*60*60*1000;
+
   document.documentElement.classList.add('ab-embed-mode');
   document.body.classList.add('ab-embed-mode');
 
@@ -36,6 +39,60 @@
   `;
   document.head.appendChild(style);
 
+  function saveSnapshot(){
+    try{
+      if(typeof orders==='undefined'||!Array.isArray(orders))return;
+      const payload={
+        version:2,
+        savedAt:Date.now(),
+        orders:orders,
+        documents:(typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]
+      };
+      localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(payload));
+    }catch(e){}
+  }
+
+  function hydrateSnapshot(){
+    try{
+      const raw=localStorage.getItem(DATA_CACHE_KEY);
+      if(!raw)return false;
+      const cached=JSON.parse(raw);
+      if(!cached||!Array.isArray(cached.orders))return false;
+      if(cached.savedAt&&Date.now()-Number(cached.savedAt)>CACHE_MAX_AGE_MS){
+        localStorage.removeItem(DATA_CACHE_KEY);
+        return false;
+      }
+
+      orders=cached.orders.map(function(o){
+        try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o;}catch(e){return o;}
+      });
+      documents=Array.isArray(cached.documents)?cached.documents:[];
+
+      if(typeof renderAll==='function')renderAll();
+      if(typeof tryOpenDeepLink==='function')tryOpenDeepLink();
+      try{window.parent.postMessage({type:'AB_COMMANDES_CACHE_READY',savedAt:Number(cached.savedAt)||0},'*');}catch(e){}
+      return true;
+    }catch(e){
+      return false;
+    }
+  }
+
+  try{
+    if(typeof renderAll==='function'){
+      const originalRenderAll=renderAll;
+      renderAll=function(){
+        const result=originalRenderAll.apply(this,arguments);
+        saveSnapshot();
+        return result;
+      };
+    }
+  }catch(e){}
+
+  const restoredFromCache=hydrateSnapshot();
+  if(restoredFromCache){
+    try{setSync(true,'Affichage local · mise à jour en arrière-plan…');}catch(e){}
+  }
+
   function sendHeight(){
     try{
       const contentHeight=Math.max(
@@ -55,7 +112,10 @@
   window.addEventListener('load',sendHeight);
   window.addEventListener('resize',sendHeight);
   new MutationObserver(()=>requestAnimationFrame(sendHeight)).observe(document.body,{childList:true,subtree:true,attributes:true});
-  setTimeout(sendHeight,100);
-  setTimeout(sendHeight,400);
+  setTimeout(sendHeight,50);
+  setTimeout(sendHeight,180);
+  setTimeout(sendHeight,500);
   setTimeout(sendHeight,1200);
+
+  window.__AB_COMMANDES_EMBED_CACHE_VERSION='2.0';
 })();
