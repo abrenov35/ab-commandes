@@ -12,7 +12,7 @@ bg_new='<script src="background-sync.js?v=5"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
-contrast_new='<script src="embed-contrast.js?v=2"></script>'
+contrast_new='<script src="embed-contrast.js?v=3"></script>'
 
 if embed_new not in s:
     replaced=False
@@ -137,12 +137,14 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
 
-# Contraste renforcé des titres uniquement dans Yaya.
+# Contraste renforcé des titres et de la note commandes uniquement dans Yaya.
 for old in (
     '<script src="embed-contrast.js?v=1"></script>\n',
     '<script src="embed-contrast.js?v=2"></script>\n',
+    '<script src="embed-contrast.js?v=3"></script>\n',
     '<script src="embed-contrast.js?v=1"></script>',
     '<script src="embed-contrast.js?v=2"></script>',
+    '<script src="embed-contrast.js?v=3"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(doc_new,doc_new+'\n'+contrast_new,1)
