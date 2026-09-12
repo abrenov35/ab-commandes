@@ -5,16 +5,27 @@
   const EMBED_STATE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
   const PENDING_KEY='AB_COMMANDES_PENDING_OPS_V1';
   const LOCAL_MAX_AGE=30*24*60*60*1000;
-  const OPEN_SYNC_DELAY_MS=700;
+  const OPEN_SYNC_DELAY_MS=0;
 
   let queue=readQueue();
   let remoteSyncInFlight=false;
   let flushInFlight=false;
   let deferredRender=false;
   let openingSyncDone=false;
+  let hadCacheAtOpen=false;
+  let userInteracted=false;
 
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
+
+  function markUserInteraction(){
+    userInteracted=true;
+    if(deferredRender)deferredRender=false;
+  }
+
+  ['pointerdown','touchstart','keydown','input','change'].forEach(function(type){
+    document.addEventListener(type,markUserInteraction,{capture:true,passive:true});
+  });
 
   function orderComparable(o){
     return {
@@ -148,7 +159,7 @@
         }
       }else if(op.entity==='document'){
         if(op.action==='delete')docMap.delete(id);
-        else docMap.set(id,{...(docMap.get(id)||{}),...op.payload});
+        else docMap.set(id,{...(docMap.get(id)||{}),...op.payload};
       }
     });
 
@@ -159,6 +170,7 @@
 
   function renderWhenIdle(){
     if(!deferredRender)return;
+    if(userInteracted){deferredRender=false;return;}
     if(modalOpen()){setTimeout(renderWhenIdle,250);return}
     deferredRender=false;
     if(typeof renderAll==='function')renderAll();
@@ -198,8 +210,21 @@
 
       reconcileQueue(remoteOrders,remoteDocs);
       const merged=overlayPending(remoteOrders,remoteDocs);
-      applyState(merged.orders,merged.documents,true);
-      try{setSync(true,queue.length?'Données chargées · modifications à envoyer':'À jour à l’ouverture')}catch(e){}
+
+      // Si l'utilisateur a déjà commencé à travailler sur un affichage mis en cache,
+      // on actualise les données et le cache sans reconstruire la page sous ses doigts.
+      // Le nouvel état sera visible à la prochaine ouverture de Commande.
+      const mayRender=!hadCacheAtOpen||!userInteracted;
+      applyState(merged.orders,merged.documents,mayRender);
+
+      try{
+        setSync(
+          true,
+          queue.length
+            ? 'Données chargées · modifications à envoyer'
+            : (userInteracted&&hadCacheAtOpen?'Synchronisé sans interrompre le travail':'À jour à l’ouverture')
+        );
+      }catch(e){}
       return true;
     }catch(e){
       console.warn('AB COMMANDES · synchro à l’ouverture',e);
@@ -311,26 +336,31 @@
     console.error('AB COMMANDES · installation synchro ouverture seule',e);
   }
 
-  const hadCache=hydrateLocalState();
+  hadCacheAtOpen=hydrateLocalState();
   if(queue.length){
     const merged=overlayPending(safeArray(orders),safeArray(documents));
     applyState(merged.orders,merged.documents,true);
-  }else if(!hadCache){
+  }else if(!hadCacheAtOpen){
     saveLocalState();
   }
 
-  /* Une seule synchronisation : au chargement / à la réouverture de la page Commande. */
+  /* Une seule synchronisation : immédiatement à l'ouverture de Commande. */
   setTimeout(async()=>{
     await syncOnceOnOpen();
     await flushQueue();
-    try{
-      if(typeof loadYayaChantiers==='function'){
-        await Promise.resolve(loadYayaChantiers(true));
-        try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}
-      }
-    }catch(e){}
+
+    // La liste Yaya n'est relue qu'à l'ouverture et uniquement si l'utilisateur
+    // n'a pas déjà commencé à travailler dans Commande.
+    if(!userInteracted){
+      try{
+        if(typeof loadYayaChantiers==='function'){
+          await Promise.resolve(loadYayaChantiers(true));
+          try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}
+        }
+      }catch(e){}
+    }
   },OPEN_SYNC_DELAY_MS);
 
   /* Aucun setInterval, aucun visibilitychange, aucune resynchronisation automatique. */
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.4-open-only';
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.5-open-only-stable';
 })();
