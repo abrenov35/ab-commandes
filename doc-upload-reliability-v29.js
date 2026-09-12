@@ -4,6 +4,7 @@
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
 
+  const MAX_BYTES=8*1024*1024;
   let busy=false;
 
   function getOrder(){
@@ -33,22 +34,36 @@
         const s=String(r.result||'');
         resolve(s.includes(',')?s.split(',').pop():s);
       };
-      r.onerror=()=>reject(new Error('Lecture du PDF impossible.'));
+      r.onerror=()=>reject(new Error('Lecture du fichier impossible.'));
       r.readAsDataURL(file);
     });
+  }
+
+  function documentType(file){
+    const name=String(file&&file.name||'').toLowerCase();
+    const mime=String(file&&file.type||'').toLowerCase();
+    if(mime==='application/pdf'||name.endsWith('.pdf'))return 'PDF';
+    if(mime.startsWith('image/')||/\.(jpg|jpeg|png|gif|webp|heic|heif|bmp|tif|tiff)$/i.test(name))return 'Image';
+    if(/\.(doc|docx|odt|rtf)$/i.test(name)||mime.includes('word')||mime.includes('opendocument.text'))return 'Word';
+    if(/\.(xls|xlsx|xlsm|csv|ods)$/i.test(name)||mime.includes('excel')||mime.includes('spreadsheet')||mime.includes('csv'))return 'Excel';
+    return 'Fichier';
+  }
+
+  function safeMime(file){
+    return String(file&&file.type||'').trim()||'application/octet-stream';
   }
 
   function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
   function targetedJsonp(action,id){
     return new Promise((resolve,reject)=>{
-      const cb='__abPdfV29_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const cb='__abFileV30_'+Date.now()+'_'+Math.random().toString(36).slice(2);
       const script=document.createElement('script');
       let done=false;
       const cleanup=()=>{
         if(done)return;
         done=true;
-        try{delete window[cb]}catch(_){window[cb]=undefined}
+        try{delete window[cb];}catch(_){window[cb]=undefined;}
         script.remove();
       };
       const timer=setTimeout(()=>{cleanup();reject(new Error('Confirmation Google trop longue.'));},5000);
@@ -77,7 +92,7 @@
         if(i>=0)documents[i]=found;else documents.push(found);
       }
     }catch(_){ }
-    try{if(typeof renderAll==='function')renderAll()}catch(_){ }
+    try{if(typeof renderAll==='function')renderAll();}catch(_){ }
     const input=document.getElementById('abDriveFile');
     if(input)input.value='';
     setTimeout(()=>{
@@ -95,8 +110,8 @@
     const order=getOrder();
 
     if(!order){status('Commande introuvable.','err');return;}
-    if(!file){status('Choisis un PDF.','err');return;}
-    if(file.size>8*1024*1024){status('PDF trop volumineux : 8 Mo maximum.','err');return;}
+    if(!file){status('Choisis un fichier.','err');return;}
+    if(file.size>MAX_BYTES){status('Fichier trop volumineux : 8 Mo maximum.','err');return;}
 
     busy=true;
     setButton('Envoi en cours…',true);
@@ -106,15 +121,16 @@
 
     try{
       const base64=await fileToBase64(file);
+      const fileName=String(file.name||'fichier');
       const payload={
         action:'document_upload',
         id:docId,
         commande_id:String(order.id||''),
         chantier:String(order.chantier||''),
-        type:'PDF',
-        file_name:String(file.name||'document.pdf'),
-        nom_fichier:String(file.name||'document.pdf'),
-        mime_type:String(file.type||'application/pdf'),
+        type:documentType(file),
+        file_name:fileName,
+        nom_fichier:fileName,
+        mime_type:safeMime(file),
         file_base64:base64,
         source:'Google Drive'
       };
@@ -128,15 +144,15 @@
 
       status('Vérification de l’enregistrement…','');
       const found=await waitForDocument(docId);
-      if(!found)throw new Error('PDF non enregistré. Vérifie les autorisations Google Drive de l’Apps Script.');
+      if(!found)throw new Error('Fichier non enregistré. Vérifie le journal Apps Script.');
 
-      status('PDF enregistré.','ok');
-      setButton('PDF enregistré',true);
+      status('Fichier enregistré.','ok');
+      setButton('Fichier enregistré',true);
       closeAfterSuccess(found);
     }catch(err){
-      console.error('AB COMMANDES V29 · upload PDF',err);
+      console.error('AB COMMANDES V30 · upload fichier',err);
       busy=false;
-      status((err&&err.message)||'Échec de l’envoi du PDF.','err');
+      status((err&&err.message)||'Échec de l’envoi du fichier.','err');
       setButton('Réessayer',false);
       return;
     }
@@ -153,5 +169,6 @@
     upload();
   },true);
 
-  window.__AB_COMMANDES_PDF_RELIABILITY_VERSION='29.0';
+  window.__AB_COMMANDES_FILE_RELIABILITY_VERSION='30.0';
+  window.__AB_COMMANDES_PDF_RELIABILITY_VERSION='30.0';
 })();
