@@ -3,7 +3,7 @@
 
   const PRICE_STORE_KEY='AB_COMMANDES_ORDER_PRICES_V1';
   const IS_EMBED=new URL(window.location.href).searchParams.get('embed')==='1';
-  const RESPONSABLES=['Solenn','Mathieu','Morvan','Pascale','Younès','Autre'];
+  const RESPONSABLES=['','Solenn','Mathieu','Morvan','Pascale','Younès','Autre'];
   let saveBusy=false;
 
   function readPrices(){
@@ -27,7 +27,7 @@
     if(/^pascale/i.test(s))return 'Pascale';
     if(/^youn[eèé]s/i.test(s))return 'Younès';
     if(/^autre/i.test(s))return 'Autre';
-    return s||'Solenn';
+    return s;
   }
 
   function ensureStyle(){
@@ -296,7 +296,7 @@
         const input=ensurePriceField();
         const value=(order&&order.prix!=null)?order.prix:getPrice(id);
         if(input)input.value=String(value ?? '');
-        configureResp((order&&order.responsable)||document.getElementById('fResp')?.value||'Solenn');
+        configureResp((order&&order.responsable)||document.getElementById('fResp')?.value||'');
         if(IS_EMBED||order)lockChantier();
         premiumLayout();
         return out;
@@ -334,7 +334,7 @@
     }
   }
 
-  premiumLayout();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installClosePolicy();
+  premiumLayout();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'');installClosePolicy();
   try{submit=submitWithPrice;const save=document.getElementById('saveBtn');if(save)save.onclick=submitWithPrice}catch(e){console.error('AB COMMANDES modale produit submit',e)}
-  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='5.0';
+  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='5.1';
 })();
