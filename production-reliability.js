@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const VERSION='28.2';
+  const VERSION='28.3';
   const MAX_ATTEMPTS=7;
   const BASE_DELAY=260;
   const TRACKED_ACTIONS=new Set(['upsert','delete','document_upsert','document_delete']);
@@ -18,6 +18,11 @@
 
   function text(v){return String(v==null?'':v).trim()}
   function same(a,b){return text(a)===text(b)}
+  function fieldValue(key,v){
+    const s=text(v);
+    return key==='chantier'?s.toLocaleUpperCase('fr-FR'):s;
+  }
+  function sameField(key,a,b){return fieldValue(key,a)===fieldValue(key,b)}
   function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
   function jsonpRequest(action,params){
@@ -63,11 +68,11 @@
     if(!remote)return false;
     if(!same(remote.id,payload.id))return false;
     for(const key of ORDER_FIELDS){
-      if(Object.prototype.hasOwnProperty.call(payload,key)&&!same(remote[key],payload[key]))return false;
+      if(Object.prototype.hasOwnProperty.call(payload,key)&&!sameField(key,remote[key],payload[key]))return false;
     }
     /* Les champs ajoutés récemment ne sont vérifiés que si le backend les expose déjà. */
     for(const key of ['chantierId','prix']){
-      if(Object.prototype.hasOwnProperty.call(payload,key)&&Object.prototype.hasOwnProperty.call(remote,key)&&!same(remote[key],payload[key]))return false;
+      if(Object.prototype.hasOwnProperty.call(payload,key)&&Object.prototype.hasOwnProperty.call(remote,key)&&!sameField(key,remote[key],payload[key]))return false;
     }
     return true;
   }
@@ -76,7 +81,7 @@
     if(!remote)return false;
     if(!same(remote.id,payload.id))return false;
     for(const key of DOC_FIELDS){
-      if(Object.prototype.hasOwnProperty.call(payload,key)&&!same(remote[key],payload[key]))return false;
+      if(Object.prototype.hasOwnProperty.call(payload,key)&&!sameField(key,remote[key],payload[key]))return false;
     }
     return true;
   }
