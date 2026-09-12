@@ -4,11 +4,12 @@
   const params=new URL(window.location.href).searchParams;
   if(params.get('embed')!=='1')return;
 
-  if(document.getElementById('ab-commandes-embed-contrast-v2'))return;
+  if(document.getElementById('ab-commandes-embed-contrast-v3'))return;
   document.getElementById('ab-commandes-embed-contrast-v1')?.remove();
+  document.getElementById('ab-commandes-embed-contrast-v2')?.remove();
 
   const style=document.createElement('style');
-  style.id='ab-commandes-embed-contrast-v2';
+  style.id='ab-commandes-embed-contrast-v3';
   style.textContent=`
     body.ab-embed-mode #ficheOrdersList{gap:10px!important}
 
@@ -82,8 +83,76 @@
       color:#0d223d!important;
       font-weight:900!important;
     }
+
+    /* NOTE COMMANDES : même contraste que les titres de statut */
+    body.ab-embed-mode #abCommandNote.ab-command-note{
+      margin-top:14px!important;
+      padding:0!important;
+      background:#eef3f8!important;
+      border:1px solid #9fb0c4!important;
+      border-radius:11px!important;
+      overflow:hidden!important;
+      box-shadow:0 2px 7px rgba(20,45,73,.12)!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-title{
+      display:flex!important;
+      align-items:center!important;
+      min-height:40px!important;
+      margin:0!important;
+      padding:10px 13px!important;
+      background:#cbd7e5!important;
+      border-bottom:1px solid #9eafc3!important;
+      color:#081c35!important;
+      font-size:14px!important;
+      line-height:1.2!important;
+      font-weight:950!important;
+      letter-spacing:.02em!important;
+      box-shadow:inset 0 -1px 0 #9eafc3!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-text{
+      margin:10px!important;
+      padding:12px 13px!important;
+      min-height:72px!important;
+      background:#fff!important;
+      border:1px solid #aebfd1!important;
+      border-radius:9px!important;
+      color:#0d223d!important;
+      font-size:13px!important;
+      line-height:1.5!important;
+      box-shadow:0 1px 3px rgba(20,45,73,.08)!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-status{
+      margin:0 11px 10px!important;
+      color:#52667e!important;
+      font-weight:650!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-empty{
+      width:calc(100% - 20px)!important;
+      margin:10px!important;
+      min-height:42px!important;
+      background:#fff!important;
+      border:1px dashed #8fa4bc!important;
+      border-radius:9px!important;
+      color:#0d223d!important;
+      font-weight:900!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-edit{
+      padding:10px!important;
+      background:#eef3f8!important;
+    }
+
+    body.ab-embed-mode #abCommandNote .ab-command-note-edit textarea{
+      border:1px solid #9fb0c4!important;
+      background:#fff!important;
+      box-shadow:0 1px 3px rgba(20,45,73,.08)!important;
+    }
   `;
 
   document.head.appendChild(style);
-  window.__AB_COMMANDES_EMBED_CONTRAST_VERSION='2.0';
+  window.__AB_COMMANDES_EMBED_CONTRAST_VERSION='3.0';
 })();
