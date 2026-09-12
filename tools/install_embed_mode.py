@@ -6,7 +6,7 @@ s=p.read_text(encoding='utf-8')
 collapsed_new='<script src="collapsed-status-groups.js?v=4"></script>'
 embed_new='<script src="embed-mode.js?v=10"></script>'
 stable_new='<script src="embed-modal-stable.js?v=1"></script>'
-kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
+kpi_new='<script src="embed-kpi-shortcuts.js?v=7"></script>'
 choice_new='<script src="choice-client-label.js?v=2"></script>'
 bg_new='<script src="background-sync.js?v=5"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
@@ -54,6 +54,7 @@ if stable_new not in s:s=s.replace(embed_new,embed_new+'\n'+stable_new,1)
 
 kpi_replaced=False
 for old in (
+    '<script src="embed-kpi-shortcuts.js?v=7"></script>',
     '<script src="embed-kpi-shortcuts.js?v=6"></script>',
     '<script src="embed-kpi-shortcuts.js?v=5"></script>',
     '<script src="embed-kpi-shortcuts.js?v=4"></script>',
