@@ -25,5 +25,5 @@ jobs:
           git config user.name "AB COMMANDES automation"
           git config user.email "actions@users.noreply.github.com"
           git add index.html
-          git commit -m "AB COMMANDES V27 - affichage intégré Yaya"
+          git commit -m "AB COMMANDES V28 - fiabilisation production"
           git push
