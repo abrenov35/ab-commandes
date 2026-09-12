@@ -139,6 +139,8 @@ for old in (
     '<script src="web-link-v31.js?v=1"></script>',
     '<script src="web-link-v31.js?v=2"></script>\n',
     '<script src="web-link-v31.js?v=2"></script>',
+    '<script src="web-link-v31.js?v=2"></script>\n',
+    '<script src="web-link-v31.js?v=2"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+web_link_new,1)
