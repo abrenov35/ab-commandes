@@ -12,7 +12,7 @@ bg_new='<script src="background-sync.js?v=5"></script>'
 note_fix_new='<script src="command-note-save-fix.js?v=1"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
-web_link_new='<script src="web-link-v31.js?v=1"></script>'
+web_link_new='<script src="web-link-v31.js?v=2"></script>'
 doc_new='<script src="doc-modal-simple.js?v=5"></script>'
 reliability_new='<script src="production-reliability.js?v=3"></script>'
 contrast_new='<script src="embed-contrast.js?v=3"></script>'
@@ -137,6 +137,8 @@ s=s.replace(detail_new,detail_new+'\n'+price_new,1)
 for old in (
     '<script src="web-link-v31.js?v=1"></script>\n',
     '<script src="web-link-v31.js?v=1"></script>',
+    '<script src="web-link-v31.js?v=2"></script>\n',
+    '<script src="web-link-v31.js?v=2"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+web_link_new,1)
