@@ -18,6 +18,7 @@
 
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
+  function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 
   function markUserInteraction(){userInteracted=true}
   ['pointerdown','touchstart','keydown','input','change'].forEach(function(type){document.addEventListener(type,markUserInteraction,{capture:true,passive:true})});
@@ -39,6 +40,7 @@
   function queueOrderDelete(id){coalesce({entity:'order',action:'delete',targetId:text(id),createdAt:Date.now()})}
   function queueDocUpsert(obj){coalesce({entity:'document',action:'upsert',targetId:text(obj.id),payload:obj,createdAt:Date.now()})}
   function queueDocDelete(id){coalesce({entity:'document',action:'delete',targetId:text(id),createdAt:Date.now()})}
+
   function pendingConfirmed(op,remoteOrders,remoteDocs){if(op.entity==='order'){const found=remoteOrders.find(o=>text(o.id)===text(op.targetId));if(op.action==='delete')return !found;return !!found&&sameComparable(orderComparable(found),orderComparable(op.payload))}const found=remoteDocs.find(d=>text(d.id)===text(op.targetId));if(op.action==='delete')return !found;return !!found&&sameComparable(docComparable(found),docComparable(op.payload))}
   function reconcileQueue(remoteOrders,remoteDocs){const before=queue.length;queue=queue.filter(op=>!pendingConfirmed(op,remoteOrders,remoteDocs));if(queue.length!==before)persistQueue()}
   function overlayPending(remoteOrders,remoteDocs){const orderMap=new Map(safeArray(remoteOrders).map(o=>[text(o.id),o]));const docMap=new Map(safeArray(remoteDocs).map(d=>[text(d.id),d]));queue.forEach(op=>{const id=text(op.targetId);if(op.entity==='order'){if(op.action==='delete')orderMap.delete(id);else{let next={...(orderMap.get(id)||{}),...op.payload};try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}orderMap.set(id,next)}}else if(op.entity==='document'){if(op.action==='delete')docMap.delete(id);else docMap.set(id,{...(docMap.get(id)||{}),...op.payload})}});return {orders:[...orderMap.values()],documents:[...docMap.values()]}}
@@ -49,11 +51,26 @@
 
   async function fetchRemoteState(){const [a,b]=await Promise.all([jsonp('list'),jsonp('documents')]);if(!a||!a.ok)throw new Error((a&&a.error)||'Lecture commandes impossible');if(!b||!b.ok)throw new Error((b&&b.error)||'Lecture documents impossible');const remoteOrders=safeArray(a.commandes).map(o=>{try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}});const remoteDocs=safeArray(b.documents);reconcileQueue(remoteOrders,remoteDocs);return overlayPending(remoteOrders,remoteDocs)}
 
+  async function waitForRemoteIdle(){
+    const started=Date.now();
+    while(remoteSyncInFlight&&Date.now()-started<5000)await sleep(100);
+  }
+
   async function syncAfterSave(){
+    await waitForRemoteIdle();
     if(remoteSyncInFlight)return false;
     remoteSyncInFlight=true;
     try{
-      const merged=await fetchRemoteState();
+      try{setSync(true,'Synchronisation…')}catch(e){}
+      let merged=null,lastError=null;
+      for(let attempt=0;attempt<3;attempt++){
+        try{
+          if(attempt)await sleep(350*attempt);
+          merged=await fetchRemoteState();
+          break;
+        }catch(e){lastError=e}
+      }
+      if(!merged)throw lastError||new Error('Synchronisation impossible');
       applyLiveState(merged.orders,merged.documents,false);
       saveSnapshot(merged.orders,merged.documents);
       renderLocalChangeWhenSafe();
@@ -62,6 +79,7 @@
     }catch(e){
       console.warn('AB COMMANDES · synchro après enregistrement',e);
       renderLocalChangeWhenSafe();
+      try{setSync(false,'Synchro à reprendre')}catch(err){}
       return false;
     }finally{remoteSyncInFlight=false}
   }
@@ -70,7 +88,13 @@
 
   async function sendOperation(op){let result;if(op.entity==='order'&&op.action==='upsert')result=await post({action:'upsert',...op.payload});else if(op.entity==='order'&&op.action==='delete')result=await post({action:'delete',id:op.targetId});else if(op.entity==='document'&&op.action==='upsert')result=await post({action:'document_upsert',...op.payload});else if(op.entity==='document'&&op.action==='delete')result=await post({action:'document_delete',id:op.targetId});if(result&&result.ok===false)throw new Error(result.error||'Envoi impossible');return result}
   async function flushQueue(){if(flushInFlight||!queue.length)return false;if(typeof navigator!=='undefined'&&navigator.onLine===false)return false;flushInFlight=true;let sentAny=false;try{for(const op of [...queue]){try{await sendOperation(op);queue=queue.filter(current=>current!==op);persistQueue();sentAny=true}catch(e){console.warn('AB COMMANDES · envoi différé',e)}}}finally{flushInFlight=false}if(sentAny){try{setSync(true,queue.length?'Certaines modifications restent en attente':'Enregistré')}catch(e){}}return sentAny}
-  async function flushThenSync(){await flushQueue();await syncAfterSave()}
+
+  async function flushThenSync(){
+    try{setSync(true,'Enregistrement…')}catch(e){}
+    await flushQueue();
+    await sleep(650);
+    await syncAfterSave();
+  }
 
   try{
     saveOrder=async function(obj){const id=text(obj&&obj.id);const current=safeArray(orders);const idx=current.findIndex(o=>text(o.id)===id);const existing=idx>=0?current[idx]:{};let next={...existing,...obj};try{if(typeof normalizeFromSheet==='function')next=normalizeFromSheet(next)}catch(e){}const nextOrders=current.slice();if(idx>=0)nextOrders[idx]=next;else nextOrders.push(next);orders=nextOrders;queueOrderUpsert(next);saveLocalState();renderLocalChangeWhenSafe();try{setSync(true,'Enregistré localement · synchronisation…')}catch(e){}setTimeout(flushThenSync,0);return true};
@@ -84,5 +108,5 @@
   if(queue.length){const merged=overlayPending(safeArray(orders),safeArray(documents));applyLiveState(merged.orders,merged.documents,!modalOpen())}else if(!hadCacheAtOpen)saveLocalState();
   setTimeout(async()=>{await syncOnceOnOpen();await flushQueue();if(!IS_EMBED&&!userInteracted){try{if(typeof loadYayaChantiers==='function'){await Promise.resolve(loadYayaChantiers(true));try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}}}catch(e){}}},OPEN_SYNC_DELAY_MS);
 
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.7-sync-after-save';
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.8-save-sync-retry';
 })();
