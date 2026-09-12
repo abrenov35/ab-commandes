@@ -13,7 +13,7 @@ note_fix_new='<script src="command-note-save-fix.js?v=1"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
-reliability_new='<script src="production-reliability.js?v=2"></script>'
+reliability_new='<script src="production-reliability.js?v=3"></script>'
 contrast_new='<script src="embed-contrast.js?v=3"></script>'
 
 if embed_new not in s:
@@ -150,8 +150,10 @@ s=s.replace(price_new,price_new+'\n'+doc_new,1)
 for old in (
     '<script src="production-reliability.js?v=1"></script>\n',
     '<script src="production-reliability.js?v=2"></script>\n',
+    '<script src="production-reliability.js?v=3"></script>\n',
     '<script src="production-reliability.js?v=1"></script>',
     '<script src="production-reliability.js?v=2"></script>',
+    '<script src="production-reliability.js?v=3"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(doc_new,doc_new+'\n'+reliability_new,1)
