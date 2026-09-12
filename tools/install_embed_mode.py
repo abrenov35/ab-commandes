@@ -12,6 +12,7 @@ bg_new='<script src="background-sync.js?v=5"></script>'
 note_fix_new='<script src="command-note-save-fix.js?v=1"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
+web_link_new='<script src="web-link-v31.js?v=1"></script>'
 doc_new='<script src="doc-modal-simple.js?v=5"></script>'
 reliability_new='<script src="production-reliability.js?v=3"></script>'
 contrast_new='<script src="embed-contrast.js?v=3"></script>'
@@ -131,6 +132,14 @@ for old in (
 ):
     s=s.replace(old,'')
 s=s.replace(detail_new,detail_new+'\n'+price_new,1)
+
+# V31 : lien web rattaché au produit, ouvert dans un nouvel onglet.
+for old in (
+    '<script src="web-link-v31.js?v=1"></script>\n',
+    '<script src="web-link-v31.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(price_new,price_new+'\n'+web_link_new,1)
 
 # Upload PDF v4 : fermeture immédiate, traitement arrière-plan, modale Upload failed en cas d'échec.
 for old in (
