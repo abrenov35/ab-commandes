@@ -13,6 +13,7 @@ note_fix_new='<script src="command-note-save-fix.js?v=1"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
+reliability_new='<script src="production-reliability.js?v=1"></script>'
 contrast_new='<script src="embed-contrast.js?v=3"></script>'
 
 if embed_new not in s:
@@ -145,6 +146,14 @@ for old in (
     s=s.replace(old,'')
 s=s.replace(price_new,price_new+'\n'+doc_new,1)
 
+# V28 : une écriture n'est retirée de la file locale qu'après confirmation dans Google Sheets.
+for old in (
+    '<script src="production-reliability.js?v=1"></script>\n',
+    '<script src="production-reliability.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(doc_new,doc_new+'\n'+reliability_new,1)
+
 # Contraste renforcé des titres et de la note commandes uniquement dans Yaya.
 for old in (
     '<script src="embed-contrast.js?v=1"></script>\n',
@@ -155,7 +164,7 @@ for old in (
     '<script src="embed-contrast.js?v=3"></script>',
 ):
     s=s.replace(old,'')
-s=s.replace(doc_new,doc_new+'\n'+contrast_new,1)
+s=s.replace(reliability_new,reliability_new+'\n'+contrast_new,1)
 
 # Le contrôleur d'état reste le dernier wrapper : un groupe ouvert reste ouvert jusqu'au clic utilisateur.
 if collapsed_new not in s:
@@ -169,4 +178,4 @@ old_poll='loadAll();setInterval(()=>{loadAll(true);loadYayaChantiers()},60000);'
 if old_poll in s:s=s.replace(old_poll,'',1)
 
 p.write_text(s,encoding='utf-8')
-print('AB COMMANDES - synchronisation uniquement à la réouverture de la page Commande')
+print('AB COMMANDES V28 - fiabilisation production installée')
