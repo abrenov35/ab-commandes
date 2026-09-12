@@ -1,0 +1,70 @@
+name: Install V38 responsable vide
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-v38-responsable-empty.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Supprimer Solenn par défaut
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          modal = Path('modal-product-v4.js')
+          text = modal.read_text(encoding='utf-8')
+
+          replacements = [
+              ("const RESPONSABLES=['Solenn','Mathieu','Morvan','Pascale','Younès','Autre'];",
+               "const RESPONSABLES=['','Solenn','Mathieu','Morvan','Pascale','Younès','Autre'];"),
+              ("return s||'Solenn';", "return s;"),
+              ("configureResp((order&&order.responsable)||document.getElementById('fResp')?.value||'Solenn');",
+               "configureResp((order&&order.responsable)||document.getElementById('fResp')?.value||'');"),
+              ("premiumLayout();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installClosePolicy();",
+               "premiumLayout();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'');installClosePolicy();"),
+              ("window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='5.0';",
+               "window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='5.1';"),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'Motif introuvable dans modal-product-v4.js: {old}')
+              text = text.replace(old, new, 1)
+          modal.write_text(text, encoding='utf-8')
+
+          index = Path('index.html')
+          html = index.read_text(encoding='utf-8')
+          old_select = '<select id="fResp" class="field"><option>Solenn 🍭</option><option>Mathieu ⚽️</option><option>Morvan ⛑️</option><option>Pascale</option><option>Younès</option></select>'
+          new_select = '<select id="fResp" class="field"><option value=""></option><option>Solenn 🍭</option><option>Mathieu ⚽️</option><option>Morvan ⛑️</option><option>Pascale</option><option>Younès</option></select>'
+          if old_select not in html:
+              raise SystemExit('Select Responsable introuvable dans index.html')
+          html = html.replace(old_select, new_select, 1)
+
+          old_default = "$('#fResp').value=o?.responsable||'Solenn 🍭';"
+          new_default = "$('#fResp').value=o?.responsable||'';"
+          if old_default not in html:
+              raise SystemExit('Valeur par défaut Responsable introuvable dans index.html')
+          html = html.replace(old_default, new_default, 1)
+
+          if 'modal-product-v4.js?v=3' not in html:
+              raise SystemExit('Version modal-product-v4 v3 introuvable dans index.html')
+          html = html.replace('modal-product-v4.js?v=3', 'modal-product-v4.js?v=4', 1)
+          index.write_text(html, encoding='utf-8')
+          PY
+      - name: Publier V38
+        run: |
+          if git diff --quiet; then
+            echo "Aucun changement"
+            exit 0
+          fi
+          git config user.name "AB COMMANDES automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add modal-product-v4.js index.html
+          git commit -m "AB COMMANDES V38 - responsable vide par défaut"
+          git push
