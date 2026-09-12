@@ -15,28 +15,23 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Force nouvelle version synchro sans rerendu
+      - name: Force nouvelle version synchro ouverture uniquement
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          old='background-sync.js?v=7'
-          new='background-sync.js?v=8'
-          guard='<script src="commandes-no-flicker-guard.js?v=noflicker-1"></script>'
+          old='background-sync.js?v=8'
+          new='background-sync.js?v=9'
           if old not in s:
-              raise SystemExit('clé background-sync v7 introuvable')
-          s=s.replace(old,new,1)
-          marker='<script src="background-sync.js?v=8"></script>'
-          if 'commandes-no-flicker-guard.js' not in s:
-              s=s.replace(marker,marker+'\n'+guard,1)
-          p.write_text(s,encoding='utf-8')
+              raise SystemExit('clé background-sync v8 introuvable')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
           PY
       - name: Commit
         run: |
           git config user.name "AB Commandes automation"
           git config user.email "actions@users.noreply.github.com"
           git add index.html
-          git commit -m "Force la synchro Commande sans rerendu v8"
+          git commit -m "Force la synchro Commande ouverture uniquement v9"
           git pull --rebase origin main
           git push origin main
