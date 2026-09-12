@@ -4,144 +4,265 @@ const DOCUMENTS_SHEET = 'DOCUMENTS';
 const DRIVE_ROOT_FOLDER = 'AB COMMANDES';
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
-/* prix est ajouté EN FIN de structure pour ne pas décaler les colonnes existantes du Sheet. */
-const COMMAND_HEADERS = [
+/*
+ * V28 : schéma non destructif.
+ * Les colonnes déjà présentes dans le Sheet sont conservées telles quelles.
+ * Les champs manquants sont ajoutés à droite au lieu de réécrire la ligne d'en-tête.
+ */
+const COMMAND_FIELDS = [
   'id','chantier','produit','qte','fournisseur','responsable','date','start','status',
-  'qte_commandee','qte_recue','date_commande','date_livraison','notes','created_at','updated_at','prix'
+  'qte_commandee','qte_recue','date_commande','date_livraison','notes','created_at','updated_at',
+  'chantierId','prix'
 ];
 
-/* drive_file_id est ajouté en fin pour préserver les colonnes DOCUMENTS existantes. */
-const DOCUMENT_HEADERS = [
+const DOCUMENT_FIELDS = [
   'id','commande_id','chantier','type','nom_fichier','url_pdf','source','date_document','auteur','created_at','drive_file_id'
 ];
 
 function doGet(e) {
   try {
-    ensureSheets_();
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ctx = ensureSheets_(ss);
     const action = String((e && e.parameter && e.parameter.action) || 'list');
+    const id = String((e && e.parameter && e.parameter.id) || '').trim();
     let data;
-    if (action === 'list') data = { ok: true, commandes: readObjects_(COMMANDES_SHEET, COMMAND_HEADERS) };
-    else if (action === 'documents') data = { ok: true, documents: readObjects_(DOCUMENTS_SHEET, DOCUMENT_HEADERS) };
-    else if (action === 'health') data = { ok: true, service: 'AB COMMANDES', time: new Date().toISOString() };
-    else data = { ok: false, error: 'Action inconnue' };
+
+    if (action === 'list') {
+      data = { ok: true, commandes: readObjects_(ctx.commandes) };
+    } else if (action === 'documents') {
+      data = { ok: true, documents: readObjects_(ctx.documents) };
+    } else if (action === 'commande') {
+      data = { ok: true, commande: findObjectById_(ctx.commandes, id) };
+    } else if (action === 'document') {
+      data = { ok: true, document: findObjectById_(ctx.documents, id) };
+    } else if (action === 'health') {
+      data = {
+        ok: true,
+        service: 'AB COMMANDES',
+        version: '28.1',
+        time: new Date().toISOString(),
+        capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read']
+      };
+    } else {
+      data = { ok: false, error: 'Action inconnue' };
+    }
     return output_(data, e);
   } catch (err) {
-    return output_({ ok: false, error: String(err && err.message ? err.message : err) }, e);
+    return output_({ ok: false, error: errorMessage_(err) }, e);
   }
 }
 
 function doPost(e) {
   try {
-    ensureSheets_();
-    const p = Object.assign({}, (e && e.parameter) || {});
-    let body = {};
-    if (e && e.postData && e.postData.contents) {
-      try { body = JSON.parse(e.postData.contents); } catch (_) { body = {}; }
-    }
-    const data = Object.assign({}, p, body);
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const ctx = ensureSheets_(ss);
+    const data = parseRequest_(e);
     const action = String(data.action || 'upsert');
 
     if (action === 'upsert') {
       const obj = normalizeCommande_(data);
-      upsertObject_(COMMANDES_SHEET, COMMAND_HEADERS, obj);
+      upsertObject_(ctx.commandes, obj);
       return json_({ ok: true, commande: obj });
     }
+
     if (action === 'delete') {
-      deleteById_(COMMANDES_SHEET, String(data.id || ''));
+      deleteById_(ctx.commandes, String(data.id || ''));
       return json_({ ok: true });
     }
+
     if (action === 'document_upsert') {
       const doc = normalizeDocument_(data);
-      upsertObject_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, doc);
+      upsertObject_(ctx.documents, doc);
       return json_({ ok: true, document: doc });
     }
+
     if (action === 'document_upload') {
       const doc = uploadDocument_(data);
-      upsertObject_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, doc);
+      upsertObject_(ctx.documents, doc);
       return json_({ ok: true, document: doc });
     }
+
     if (action === 'document_delete') {
-      const id = String(data.id || '');
-      const doc = findObjectById_(DOCUMENTS_SHEET, DOCUMENT_HEADERS, id);
+      const id = String(data.id || '').trim();
+      const doc = findObjectById_(ctx.documents, id);
       if (doc && doc.drive_file_id) {
         try { DriveApp.getFileById(String(doc.drive_file_id)).setTrashed(true); } catch (_) {}
       }
-      deleteById_(DOCUMENTS_SHEET, id);
+      deleteById_(ctx.documents, id);
       return json_({ ok: true });
     }
+
     return json_({ ok: false, error: 'Action inconnue' });
   } catch (err) {
-    return json_({ ok: false, error: String(err && err.message ? err.message : err) });
+    return json_({ ok: false, error: errorMessage_(err) });
   }
 }
 
-function ensureSheets_() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sh = ss.getSheetByName(COMMANDES_SHEET);
-  if (!sh) sh = ss.insertSheet(COMMANDES_SHEET);
-  ensureHeader_(sh, COMMAND_HEADERS);
-
-  let docs = ss.getSheetByName(DOCUMENTS_SHEET);
-  if (!docs) docs = ss.insertSheet(DOCUMENTS_SHEET);
-  ensureHeader_(docs, DOCUMENT_HEADERS);
+function parseRequest_(e) {
+  const params = Object.assign({}, (e && e.parameter) || {});
+  let body = {};
+  if (e && e.postData && e.postData.contents) {
+    const raw = String(e.postData.contents || '').trim();
+    if (raw) {
+      try { body = JSON.parse(raw); } catch (_) { body = {}; }
+    }
+  }
+  return Object.assign({}, params, body);
 }
 
-function ensureHeader_(sheet, headers) {
-  const values = sheet.getRange(1, 1, 1, headers.length).getValues()[0];
-  const different = headers.some((h, i) => values[i] !== h);
-  if (different) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.setFrozenRows(1);
+function ensureSheets_(ss) {
+  let commandes = ss.getSheetByName(COMMANDES_SHEET);
+  if (!commandes) commandes = ss.insertSheet(COMMANDES_SHEET);
+  ensureColumns_(commandes, COMMAND_FIELDS);
+
+  let documents = ss.getSheetByName(DOCUMENTS_SHEET);
+  if (!documents) documents = ss.insertSheet(DOCUMENTS_SHEET);
+  ensureColumns_(documents, DOCUMENT_FIELDS);
+
+  commandes.setFrozenRows(1);
+  documents.setFrozenRows(1);
+  return { commandes: commandes, documents: documents };
 }
 
-function readObjects_(sheetName, headers) {
-  const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
-  const lastRow = sh.getLastRow();
+function ensureColumns_(sheet, requiredHeaders) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  const current = sheet.getRange(1, 1, 1, width).getDisplayValues()[0];
+  const hasAnyHeader = current.some(v => String(v || '').trim() !== '');
+
+  if (!hasAnyHeader) {
+    sheet.getRange(1, 1, 1, requiredHeaders.length).setValues([requiredHeaders]);
+    return;
+  }
+
+  const existing = new Set(current.map(v => String(v || '').trim()).filter(Boolean));
+  const missing = requiredHeaders.filter(h => !existing.has(h));
+  if (!missing.length) return;
+
+  let lastNamedCol = 0;
+  current.forEach((v, i) => { if (String(v || '').trim()) lastNamedCol = i + 1; });
+  const startCol = lastNamedCol + 1;
+  sheet.getRange(1, startCol, 1, missing.length).setValues([missing]);
+}
+
+function headerState_(sheet) {
+  const width = Math.max(sheet.getLastColumn(), 1);
+  const headers = sheet.getRange(1, 1, 1, width).getDisplayValues()[0].map(v => String(v || '').trim());
+  const map = {};
+  headers.forEach((h, i) => { if (h && map[h] == null) map[h] = i + 1; });
+  return { width: width, headers: headers, map: map };
+}
+
+function readObjects_(sheet) {
+  const lastRow = sheet.getLastRow();
   if (lastRow < 2) return [];
-  const rows = sh.getRange(2, 1, lastRow - 1, headers.length).getDisplayValues();
-  return rows.filter(r => r.some(v => v !== '')).map(r => {
-    const o = {};
-    headers.forEach((h, i) => o[h] = r[i]);
-    return o;
-  });
+
+  const state = headerState_(sheet);
+  const rows = sheet.getRange(2, 1, lastRow - 1, state.width).getDisplayValues();
+  return rows
+    .filter(r => r.some(v => String(v || '') !== ''))
+    .map(r => rowToObject_(r, state.headers));
 }
 
-function findObjectById_(sheetName, headers, id) {
+function rowToObject_(row, headers) {
+  const obj = {};
+  headers.forEach((h, i) => { if (h) obj[h] = row[i] == null ? '' : row[i]; });
+  return obj;
+}
+
+function findObjectById_(sheet, id) {
+  id = String(id || '').trim();
   if (!id) return null;
-  return readObjects_(sheetName, headers).find(o => String(o.id || '') === String(id)) || null;
+
+  const state = headerState_(sheet);
+  const idCol = state.map.id;
+  if (!idCol) throw new Error('Colonne id absente');
+
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return null;
+  const ids = sheet.getRange(2, idCol, lastRow - 1, 1).getDisplayValues().flat();
+  const idx = ids.findIndex(v => String(v || '') === id);
+  if (idx < 0) return null;
+
+  const row = sheet.getRange(idx + 2, 1, 1, state.width).getDisplayValues()[0];
+  return rowToObject_(row, state.headers);
 }
 
-function upsertObject_(sheetName, headers, obj) {
+function upsertObject_(sheet, obj) {
+  if (!obj || !obj.id) throw new Error('ID manquant');
+
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
-    const idCol = 1;
-    const lastRow = sh.getLastRow();
+    const state = headerState_(sheet);
+    const idCol = state.map.id;
+    if (!idCol) throw new Error('Colonne id absente');
+
+    const lastRow = sheet.getLastRow();
     let row = 0;
     if (lastRow >= 2) {
-      const ids = sh.getRange(2, idCol, lastRow - 1, 1).getDisplayValues().flat();
-      const idx = ids.indexOf(String(obj.id));
+      const ids = sheet.getRange(2, idCol, lastRow - 1, 1).getDisplayValues().flat();
+      const idx = ids.findIndex(v => String(v || '') === String(obj.id));
       if (idx >= 0) row = idx + 2;
     }
-    const vals = headers.map(h => obj[h] == null ? '' : obj[h]);
-    if (row) sh.getRange(row, 1, 1, headers.length).setValues([vals]);
-    else sh.appendRow(vals);
+
+    if (!row) {
+      row = Math.max(sheet.getLastRow() + 1, 2);
+      const values = Array(state.width).fill('');
+      Object.keys(obj).forEach(key => {
+        const col = state.map[key];
+        if (col) values[col - 1] = obj[key] == null ? '' : obj[key];
+      });
+      sheet.getRange(row, 1, 1, state.width).setValues([values]);
+      return;
+    }
+
+    writeObjectFields_(sheet, row, state.map, obj);
   } finally {
     lock.releaseLock();
   }
 }
 
-function deleteById_(sheetName, id) {
+function writeObjectFields_(sheet, row, headerMap, obj) {
+  const updates = Object.keys(obj)
+    .map(key => ({ key: key, col: headerMap[key], value: obj[key] == null ? '' : obj[key] }))
+    .filter(x => x.col)
+    .sort((a, b) => a.col - b.col);
+
+  if (!updates.length) return;
+
+  let group = [updates[0]];
+  const groups = [];
+  for (let i = 1; i < updates.length; i++) {
+    const prev = group[group.length - 1];
+    const next = updates[i];
+    if (next.col === prev.col + 1) group.push(next);
+    else { groups.push(group); group = [next]; }
+  }
+  groups.push(group);
+
+  groups.forEach(items => {
+    const startCol = items[0].col;
+    const values = [items.map(x => x.value)];
+    sheet.getRange(row, startCol, 1, items.length).setValues(values);
+  });
+}
+
+function deleteById_(sheet, id) {
+  id = String(id || '').trim();
   if (!id) throw new Error('ID manquant');
+
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const sh = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(sheetName);
-    const lastRow = sh.getLastRow();
+    const state = headerState_(sheet);
+    const idCol = state.map.id;
+    if (!idCol) throw new Error('Colonne id absente');
+
+    const lastRow = sheet.getLastRow();
     if (lastRow < 2) return;
-    const ids = sh.getRange(2, 1, lastRow - 1, 1).getDisplayValues().flat();
-    const idx = ids.indexOf(id);
-    if (idx >= 0) sh.deleteRow(idx + 2);
+    const ids = sheet.getRange(2, idCol, lastRow - 1, 1).getDisplayValues().flat();
+    const idx = ids.findIndex(v => String(v || '') === id);
+    if (idx >= 0) sheet.deleteRow(idx + 2);
   } finally {
     lock.releaseLock();
   }
@@ -166,6 +287,7 @@ function normalizeCommande_(d) {
     notes: String(d.notes || ''),
     created_at: String(d.created_at || now),
     updated_at: now,
+    chantierId: String(d.chantierId || d.chantier_id || ''),
     prix: String(d.prix || '').trim()
   };
 }
@@ -197,16 +319,17 @@ function uploadDocument_(d) {
   let bytes;
   try { bytes = Utilities.base64Decode(rawBase64); }
   catch (_) { throw new Error('Fichier illisible'); }
+
   if (!bytes || !bytes.length) throw new Error('Fichier vide');
   if (bytes.length > MAX_UPLOAD_BYTES) throw new Error('Fichier trop volumineux (8 Mo maximum)');
 
   const chantier = String(d.chantier || 'CHANTIER').trim().toUpperCase();
   const fileName = safeFileName_(d.file_name || d.nom_fichier || 'document.pdf');
   const mimeType = String(d.mime_type || 'application/pdf').trim() || 'application/pdf';
-
   const folder = getDriveFolderForChantier_(chantier);
   const blob = Utilities.newBlob(bytes, mimeType, fileName);
   const file = folder.createFile(blob);
+
   try { file.setDescription('AB COMMANDES · ' + chantier + ' · commande ' + commandeId); } catch (_) {}
 
   return normalizeDocument_({
@@ -244,10 +367,13 @@ function safeFileName_(name) {
 }
 
 function output_(obj, e) {
-  const cb = e && e.parameter && e.parameter.callback;
+  const cb = String((e && e.parameter && e.parameter.callback) || '').trim();
   if (cb) {
+    if (!/^[A-Za-z_$][0-9A-Za-z_$]*(?:\.[A-Za-z_$][0-9A-Za-z_$]*)*$/.test(cb)) {
+      return json_({ ok: false, error: 'Callback invalide' });
+    }
     return ContentService
-      .createTextOutput(String(cb) + '(' + JSON.stringify(obj) + ');')
+      .createTextOutput(cb + '(' + JSON.stringify(obj) + ');')
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return json_(obj);
@@ -255,4 +381,8 @@ function output_(obj, e) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function errorMessage_(err) {
+  return String(err && err.message ? err.message : err || 'Erreur inconnue');
 }
