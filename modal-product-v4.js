@@ -29,18 +29,172 @@
     if(/^autre/i.test(s))return 'Autre';
     return s||'Solenn';
   }
+
   function ensureStyle(){
-    if(document.getElementById('ab-product-modal-style-v4'))return;
+    if(document.getElementById('ab-product-modal-style-v5'))return;
     const s=document.createElement('style');
-    s.id='ab-product-modal-style-v4';
+    s.id='ab-product-modal-style-v5';
     s.textContent=`
-      #fChantier.ab-locked-chantier{background:#f3f5f8!important;color:#24364f!important;opacity:1!important;cursor:default!important;pointer-events:none!important;-webkit-appearance:none!important;appearance:none!important;background-image:none!important;padding-right:12px!important;font-weight:800!important}
-      #fChantier.ab-locked-chantier::-ms-expand{display:none!important}
-      #fPrix{font-variant-numeric:tabular-nums}
-      #modal .dialog{pointer-events:auto!important}
+      #modal{
+        background:rgba(31,45,66,.48)!important;
+        backdrop-filter:blur(5px)!important;
+        -webkit-backdrop-filter:blur(5px)!important;
+        padding:14px!important;
+      }
+      #modal .dialog{
+        width:min(610px,calc(100vw - 28px))!important;
+        max-width:610px!important;
+        max-height:none!important;
+        overflow:visible!important;
+        padding:20px 22px 18px!important;
+        border:1px solid #d9e3ef!important;
+        border-radius:20px!important;
+        background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)!important;
+        box-shadow:0 24px 65px rgba(19,37,63,.24),0 5px 16px rgba(19,37,63,.10)!important;
+        pointer-events:auto!important;
+      }
+      #modal #modalTitle{
+        position:relative!important;
+        display:flex!important;
+        align-items:center!important;
+        gap:11px!important;
+        margin:0 0 15px!important;
+        color:#132b4f!important;
+        font-size:21px!important;
+        font-weight:900!important;
+        letter-spacing:-.02em!important;
+        line-height:1.15!important;
+      }
+      #modal #modalTitle::before{
+        content:'◇'!important;
+        display:inline-grid!important;
+        place-items:center!important;
+        width:34px!important;
+        height:34px!important;
+        flex:0 0 34px!important;
+        border-radius:10px!important;
+        background:#e9f2ff!important;
+        color:#2470df!important;
+        font-size:22px!important;
+        font-weight:900!important;
+      }
+      #modal .form-grid{
+        display:grid!important;
+        grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;
+        gap:10px 12px!important;
+      }
+      #modal .form-grid>div{min-width:0!important}
+      #modal .form-grid>div:has(#fChantier),
+      #modal .form-grid>div:has(#fNotes){grid-column:1/-1!important}
+      #modal .label{
+        display:block!important;
+        margin:0 0 4px!important;
+        color:#617491!important;
+        font-size:10.5px!important;
+        font-weight:800!important;
+        line-height:1.15!important;
+      }
+      #modal .label .small{font-size:10px!important;color:#7c8da7!important}
+      #modal .field,
+      #modal select.field,
+      #modal input.field,
+      #modal textarea.field{
+        width:100%!important;
+        min-height:42px!important;
+        padding:9px 11px!important;
+        border:1px solid #d4dfed!important;
+        border-radius:10px!important;
+        background:#fff!important;
+        color:#18304f!important;
+        box-shadow:0 1px 2px rgba(22,45,73,.025)!important;
+        font-size:13px!important;
+        font-weight:600!important;
+        outline:none!important;
+        transition:border-color .15s ease,box-shadow .15s ease,background .15s ease!important;
+      }
+      #modal .field:focus,
+      #modal select.field:focus,
+      #modal input.field:focus,
+      #modal textarea.field:focus{
+        border-color:#7ca7e6!important;
+        box-shadow:0 0 0 3px rgba(47,111,237,.10)!important;
+      }
+      #modal .field::placeholder{color:#9aa9bd!important;font-weight:500!important}
+      #modal #fChantier.ab-locked-chantier{
+        background:#f3f7fc!important;
+        color:#17365f!important;
+        opacity:1!important;
+        cursor:default!important;
+        pointer-events:none!important;
+        -webkit-appearance:none!important;
+        appearance:none!important;
+        background-image:none!important;
+        padding-left:14px!important;
+        padding-right:12px!important;
+        border-color:#d2deec!important;
+        font-weight:850!important;
+      }
+      #modal #fChantier.ab-locked-chantier::-ms-expand{display:none!important}
+      #modal #fPrix{font-variant-numeric:tabular-nums!important}
+      #modal #fNotes{min-height:42px!important}
+      #modal .dialog-actions{
+        display:flex!important;
+        align-items:center!important;
+        gap:8px!important;
+        flex-wrap:nowrap!important;
+        margin-top:16px!important;
+        padding-top:14px!important;
+        border-top:1px solid #e7edf5!important;
+      }
+      #modal .dialog-actions .btn{
+        min-height:40px!important;
+        height:40px!important;
+        padding:0 13px!important;
+        border-radius:10px!important;
+        box-shadow:none!important;
+        font-size:12px!important;
+        font-weight:800!important;
+        white-space:nowrap!important;
+      }
+      #modal #abEditDeleteBtn{
+        margin-right:auto!important;
+        border:1px solid #f2b9c1!important;
+        background:#fff5f6!important;
+        color:#cf2945!important;
+      }
+      #modal #abEditDeleteBtn:hover{background:#ffedf0!important;border-color:#e99aa8!important}
+      #modal #abEditDocBtn,
+      #modal #cancelBtn{
+        border:1px solid #d3deeb!important;
+        background:#fff!important;
+        color:#233b5b!important;
+      }
+      #modal #abEditDocBtn:hover,
+      #modal #cancelBtn:hover{background:#f4f7fb!important;border-color:#b8c8da!important}
+      #modal #saveBtn{
+        border:1px solid #1757c9!important;
+        background:linear-gradient(180deg,#2f78ef 0%,#195dce 100%)!important;
+        color:#fff!important;
+        box-shadow:0 7px 16px rgba(31,95,207,.20)!important;
+        padding-left:16px!important;
+        padding-right:16px!important;
+      }
+      #modal #saveBtn:hover{background:linear-gradient(180deg,#3881f6 0%,#1b62d8 100%)!important}
+      #modal #saveBtn:disabled{opacity:.66!important;cursor:wait!important}
+      @media(max-width:620px){
+        #modal{padding:8px!important}
+        #modal .dialog{width:calc(100vw - 16px)!important;padding:16px!important;border-radius:17px!important}
+        #modal #modalTitle{font-size:18px!important;margin-bottom:12px!important}
+        #modal #modalTitle::before{width:30px!important;height:30px!important;flex-basis:30px!important;font-size:19px!important}
+        #modal .form-grid{gap:8px!important}
+        #modal .field,#modal select.field,#modal input.field,#modal textarea.field{min-height:39px!important;font-size:12.5px!important;padding:8px 9px!important}
+        #modal .dialog-actions{gap:6px!important;overflow-x:auto!important;padding-bottom:2px!important}
+        #modal .dialog-actions .btn{min-height:37px!important;height:37px!important;padding:0 9px!important;font-size:10.5px!important}
+      }
     `;
     document.head.appendChild(s);
   }
+
   function ensurePriceField(){
     let input=document.getElementById('fPrix');
     let box=input&&input.parentElement;
@@ -57,11 +211,21 @@
     if(grid&&box.parentElement!==grid){anchor?grid.insertBefore(box,anchor):grid.appendChild(box)}
     return input;
   }
+
+  function premiumLayout(){
+    ensureStyle();
+    const chantier=document.getElementById('fChantier');
+    const notes=document.getElementById('fNotes');
+    if(chantier&&chantier.parentElement)chantier.parentElement.classList.add('ab-premium-full');
+    if(notes&&notes.parentElement)notes.parentElement.classList.add('ab-premium-full');
+  }
+
   function lockChantier(){
     const f=document.getElementById('fChantier');if(!f)return;
     f.disabled=true;f.tabIndex=-1;f.classList.add('ab-locked-chantier');f.setAttribute('aria-disabled','true');
     const label=f.parentElement&&f.parentElement.querySelector('.label');if(label)label.textContent='Chantier';
   }
+
   function configureResp(current){
     const f=document.getElementById('fResp');if(!f)return;
     const value=cleanResp(current||f.value);
@@ -69,17 +233,9 @@
     f.value=RESPONSABLES.includes(value)?value:'Autre';
   }
 
-  function installStrictClosePolicy(){
-    if(window.__AB_PRODUCT_MODAL_STRICT_CLOSE_V1)return;
-    window.__AB_PRODUCT_MODAL_STRICT_CLOSE_V1=true;
-
-    const originalClose=typeof closeModal==='function'?closeModal:null;
-    if(originalClose){
-      window.__AB_PRODUCT_MODAL_ORIGINAL_CLOSE=originalClose;
-      closeModal=function(){return false};
-      const cancel=document.getElementById('cancelBtn');
-      if(cancel)cancel.onclick=function(){return originalClose()};
-    }
+  function installClosePolicy(){
+    if(window.__AB_PRODUCT_MODAL_CLOSE_POLICY_V2)return;
+    window.__AB_PRODUCT_MODAL_CLOSE_POLICY_V2=true;
 
     const blockOutside=e=>{
       const modal=document.getElementById('modal');
@@ -103,7 +259,7 @@
   }
 
   try{
-    if(typeof normalizeFromSheet==='function'&&!normalizeFromSheet.__abProductModalV4){
+    if(typeof normalizeFromSheet==='function'&&!normalizeFromSheet.__abProductModalV5){
       const previous=normalizeFromSheet;
       const wrapped=function(o){
         const next=previous.apply(this,arguments)||{};
@@ -113,12 +269,12 @@
         next.responsable=cleanResp(next.responsable);
         return next;
       };
-      wrapped.__abProductModalV4=true;normalizeFromSheet=wrapped;
+      wrapped.__abProductModalV5=true;normalizeFromSheet=wrapped;
     }
   }catch(e){console.error('AB COMMANDES modale produit normalize',e)}
 
   try{
-    if(typeof saveOrder==='function'&&!saveOrder.__abProductModalV4){
+    if(typeof saveOrder==='function'&&!saveOrder.__abProductModalV5){
       const previous=saveOrder;
       const wrapped=async function(obj){
         const next={...(obj||{})};const id=String(next.id||'');
@@ -126,15 +282,15 @@
         next.responsable=cleanResp(next.responsable);
         return previous.call(this,next);
       };
-      wrapped.__abProductModalV4=true;saveOrder=wrapped;
+      wrapped.__abProductModalV5=true;saveOrder=wrapped;
     }
   }catch(e){console.error('AB COMMANDES modale produit save',e)}
 
   try{
-    if(typeof openModal==='function'&&!openModal.__abProductModalV4){
+    if(typeof openModal==='function'&&!openModal.__abProductModalV5){
       const previous=openModal;
       const wrapped=async function(id=null){
-        ensureStyle();ensurePriceField();installStrictClosePolicy();
+        premiumLayout();ensurePriceField();installClosePolicy();
         const out=await previous.apply(this,arguments);
         const order=id&&Array.isArray(orders)?orders.find(x=>String(x.id||'')===String(id)):null;
         const input=ensurePriceField();
@@ -142,9 +298,10 @@
         if(input)input.value=String(value ?? '');
         configureResp((order&&order.responsable)||document.getElementById('fResp')?.value||'Solenn');
         if(IS_EMBED||order)lockChantier();
+        premiumLayout();
         return out;
       };
-      wrapped.__abProductModalV4=true;openModal=wrapped;
+      wrapped.__abProductModalV5=true;openModal=wrapped;
     }
   }catch(e){console.error('AB COMMANDES modale produit open',e)}
 
@@ -168,10 +325,7 @@
     try{
       setPrice(data.id,prix);
       await saveOrder(data);
-      editId=data.id;
-      const title=document.getElementById('modalTitle');if(title)title.textContent='Modifier le produit';
-      lockChantier();
-      if(save){save.textContent='Enregistré ✓';setTimeout(()=>{if(save.isConnected){save.textContent='Enregistrer';save.disabled=false}},900)}
+      if(typeof closeModal==='function')closeModal();
     }catch(e){
       console.error('AB COMMANDES modale produit save',e);
       if(save){save.textContent='Enregistrer';save.disabled=false}
@@ -180,7 +334,7 @@
     }
   }
 
-  ensureStyle();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installStrictClosePolicy();
+  premiumLayout();ensurePriceField();configureResp(document.getElementById('fResp')?.value||'Solenn');installClosePolicy();
   try{submit=submitWithPrice;const save=document.getElementById('saveBtn');if(save)save.onclick=submitWithPrice}catch(e){console.error('AB COMMANDES modale produit submit',e)}
-  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='4.1';
+  window.__AB_COMMANDES_PRODUCT_MODAL_VERSION='5.0';
 })();
