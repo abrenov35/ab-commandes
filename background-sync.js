@@ -6,23 +6,20 @@
   const PENDING_KEY='AB_COMMANDES_PENDING_OPS_V1';
   const LOCAL_MAX_AGE=30*24*60*60*1000;
   const OPEN_SYNC_DELAY_MS=0;
+  const IS_EMBED=new URL(window.location.href).searchParams.get('embed')==='1';
 
   let queue=readQueue();
   let remoteSyncInFlight=false;
   let flushInFlight=false;
-  let deferredRender=false;
   let openingSyncDone=false;
   let hadCacheAtOpen=false;
   let userInteracted=false;
+  let localRenderPending=false;
 
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
 
-  function markUserInteraction(){
-    userInteracted=true;
-    if(deferredRender)deferredRender=false;
-  }
-
+  function markUserInteraction(){userInteracted=true}
   ['pointerdown','touchstart','keydown','input','change'].forEach(function(type){
     document.addEventListener(type,markUserInteraction,{capture:true,passive:true});
   });
@@ -76,13 +73,15 @@
     try{localStorage.setItem(PENDING_KEY,JSON.stringify(queue))}catch(e){}
   }
 
-  function saveLocalState(){
+  function saveSnapshot(nextOrders,nextDocs){
     try{
-      const payload={savedAt:Date.now(),orders:safeArray(orders),documents:safeArray(documents)};
+      const payload={savedAt:Date.now(),orders:safeArray(nextOrders),documents:safeArray(nextDocs)};
       localStorage.setItem(LOCAL_STATE_KEY,JSON.stringify(payload));
-      localStorage.setItem(EMBED_STATE_KEY,JSON.stringify({version:2,...payload}));
+      localStorage.setItem(EMBED_STATE_KEY,JSON.stringify({version:3,...payload}));
     }catch(e){}
   }
+
+  function saveLocalState(){saveSnapshot(orders,documents)}
 
   function readCachedState(){
     for(const key of [LOCAL_STATE_KEY,EMBED_STATE_KEY]){
@@ -111,7 +110,7 @@
       orders=merged.orders;
       documents=merged.documents;
       if(typeof renderAll==='function')renderAll();
-      try{setSync(true,queue.length?'Dernier affichage chargé · modifications en attente':'Dernier affichage chargé')}catch(e){}
+      try{setSync(true,queue.length?'Affichage instantané · modifications en attente':'Affichage instantané · synchro en arrière-plan')}catch(e){}
       return true;
     }catch(e){return false}
   }
@@ -159,38 +158,39 @@
         }
       }else if(op.entity==='document'){
         if(op.action==='delete')docMap.delete(id);
-        else docMap.set(id,{...(docMap.get(id)||{}),...op.payload};
+        else docMap.set(id,{...(docMap.get(id)||{}),...op.payload});
       }
     });
 
     return {orders:[...orderMap.values()],documents:[...docMap.values()]};
   }
 
-  function modalOpen(){return !!document.querySelector('.modal.show')}
-
-  function renderWhenIdle(){
-    if(!deferredRender)return;
-    if(userInteracted){deferredRender=false;return;}
-    if(modalOpen()){setTimeout(renderWhenIdle,250);return}
-    deferredRender=false;
-    if(typeof renderAll==='function')renderAll();
+  function modalOpen(){
+    return !!document.querySelector('#modal.show,#docModal.show,.modal.show,[role="dialog"][open]');
   }
 
-  function applyState(nextOrders,nextDocs,allowRender=true){
+  function renderLocalChangeWhenSafe(){
+    if(localRenderPending)return;
+    localRenderPending=true;
+    const run=function(){
+      if(modalOpen()){
+        setTimeout(run,120);
+        return;
+      }
+      localRenderPending=false;
+      try{if(typeof renderAll==='function')renderAll()}catch(e){}
+    };
+    setTimeout(run,0);
+  }
+
+  function applyLiveState(nextOrders,nextDocs,renderNow){
     const before=stateSignature(orders,documents);
     const after=stateSignature(nextOrders,nextDocs);
     if(before===after)return false;
     orders=nextOrders;
     documents=nextDocs;
     saveLocalState();
-    if(allowRender){
-      if(modalOpen()){
-        deferredRender=true;
-        setTimeout(renderWhenIdle,250);
-      }else if(typeof renderAll==='function'){
-        renderAll();
-      }
-    }
+    if(renderNow&&!modalOpen()&&typeof renderAll==='function')renderAll();
     return true;
   }
 
@@ -211,24 +211,27 @@
       reconcileQueue(remoteOrders,remoteDocs);
       const merged=overlayPending(remoteOrders,remoteDocs);
 
-      // Si l'utilisateur a déjà commencé à travailler sur un affichage mis en cache,
-      // on actualise les données et le cache sans reconstruire la page sous ses doigts.
-      // Le nouvel état sera visible à la prochaine ouverture de Commande.
-      const mayRender=!hadCacheAtOpen||!userInteracted;
-      applyState(merged.orders,merged.documents,mayRender);
+      if(hadCacheAtOpen){
+        // Mode stale-while-revalidate : l'écran affiché reste totalement immobile.
+        // La version fraîche est placée dans le cache et sera visible à la prochaine ouverture.
+        saveSnapshot(merged.orders,merged.documents);
+      }else{
+        // Premier usage sans cache : un seul rendu lorsque les données arrivent.
+        applyLiveState(merged.orders,merged.documents,!modalOpen());
+      }
 
       try{
         setSync(
           true,
           queue.length
-            ? 'Données chargées · modifications à envoyer'
-            : (userInteracted&&hadCacheAtOpen?'Synchronisé sans interrompre le travail':'À jour à l’ouverture')
+            ? 'Synchronisé en arrière-plan · modifications à envoyer'
+            : 'Synchronisé en arrière-plan · affichage stable'
         );
       }catch(e){}
       return true;
     }catch(e){
       console.warn('AB COMMANDES · synchro à l’ouverture',e);
-      try{setSync(false,'Dernier affichage conservé')}catch(err){}
+      try{setSync(false,hadCacheAtOpen?'Dernier affichage conservé':'Connexion impossible')}catch(err){}
       return false;
     }finally{
       remoteSyncInFlight=false;
@@ -285,8 +288,9 @@
       orders=nextOrders;
       queueOrderUpsert(next);
       saveLocalState();
-      if(typeof renderAll==='function')renderAll();
-      try{setSync(true,'Enregistré localement · envoi en cours')}catch(e){}
+      if(modalOpen())renderLocalChangeWhenSafe();
+      else if(typeof renderAll==='function')renderAll();
+      try{setSync(true,'Enregistré localement · envoi en arrière-plan')}catch(e){}
       setTimeout(flushQueue,0);
       return true;
     };
@@ -296,8 +300,9 @@
       orders=safeArray(orders).filter(o=>text(o.id)!==target);
       queueOrderDelete(target);
       saveLocalState();
-      if(typeof renderAll==='function')renderAll();
-      try{setSync(true,'Suppression locale · envoi en cours')}catch(e){}
+      if(modalOpen())renderLocalChangeWhenSafe();
+      else if(typeof renderAll==='function')renderAll();
+      try{setSync(true,'Suppression locale · envoi en arrière-plan')}catch(e){}
       setTimeout(flushQueue,0);
       return true;
     };
@@ -311,9 +316,9 @@
       documents=nextDocs;
       queueDocUpsert(doc);
       saveLocalState();
-      if(typeof renderAll==='function')renderAll();
       try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
-      try{setSync(true,'Document enregistré localement · envoi en cours')}catch(e){}
+      if(!modalOpen()&&typeof renderAll==='function')renderAll();
+      try{setSync(true,'Document enregistré localement · envoi en arrière-plan')}catch(e){}
       setTimeout(flushQueue,0);
       return true;
     };
@@ -323,35 +328,34 @@
       documents=safeArray(documents).filter(d=>text(d.id)!==target);
       queueDocDelete(target);
       saveLocalState();
-      if(typeof renderAll==='function')renderAll();
       try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
-      try{setSync(true,'Suppression locale · envoi en cours')}catch(e){}
+      if(!modalOpen()&&typeof renderAll==='function')renderAll();
+      try{setSync(true,'Suppression locale · envoi en arrière-plan')}catch(e){}
       setTimeout(flushQueue,0);
       return true;
     };
 
-    /* Toute demande de relecture pendant que la page reste ouverte est neutralisée. */
+    // Aucun rechargement réseau pendant que la page Commande est ouverte.
     loadAll=async function(){return false};
   }catch(e){
-    console.error('AB COMMANDES · installation synchro ouverture seule',e);
+    console.error('AB COMMANDES · installation synchro stable',e);
   }
 
   hadCacheAtOpen=hydrateLocalState();
   if(queue.length){
     const merged=overlayPending(safeArray(orders),safeArray(documents));
-    applyState(merged.orders,merged.documents,true);
+    applyLiveState(merged.orders,merged.documents,!modalOpen());
   }else if(!hadCacheAtOpen){
     saveLocalState();
   }
 
-  /* Une seule synchronisation : immédiatement à l'ouverture de Commande. */
+  // Une seule synchro réseau à l'ouverture. En mode intégré Yaya, pas de seconde
+  // lecture de la base chantiers : le cache Yaya du même domaine suffit.
   setTimeout(async()=>{
     await syncOnceOnOpen();
     await flushQueue();
 
-    // La liste Yaya n'est relue qu'à l'ouverture et uniquement si l'utilisateur
-    // n'a pas déjà commencé à travailler dans Commande.
-    if(!userInteracted){
+    if(!IS_EMBED&&!userInteracted){
       try{
         if(typeof loadYayaChantiers==='function'){
           await Promise.resolve(loadYayaChantiers(true));
@@ -361,6 +365,5 @@
     }
   },OPEN_SYNC_DELAY_MS);
 
-  /* Aucun setInterval, aucun visibilitychange, aucune resynchronisation automatique. */
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.5-open-only-stable';
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.6-stale-while-revalidate';
 })();
