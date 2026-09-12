@@ -2,7 +2,7 @@
   'use strict';
 
   const TYPE='Lien web';
-  const VERSION='32.0';
+  const VERSION='33.0';
   let scheduled=false;
 
   function docs(){return (typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]}
@@ -194,7 +194,7 @@
         wrapped.__abWebLinkV31=true;
         docCount=wrapped;
       }
-    }catch(err){console.error('AB COMMANDES V32 docCount',err)}
+    }catch(err){console.error('AB COMMANDES V33 docCount',err)}
   }
 
   function rowId(row){return String(row?.dataset?.id||row?.dataset?.ficheId||'')}
@@ -234,12 +234,14 @@
         ensureField();
         const out=await previous.apply(this,arguments);
         fillField(id);
+        const save=document.getElementById('saveBtn');
+        if(save){save.disabled=false;save.textContent='Enregistrer'}
         return out;
       };
       wrapped.__abWebLinkV31=true;
       openModal=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V32 openModal',err)}
+  }catch(err){console.error('AB COMMANDES V33 openModal',err)}
 
   try{
     if(typeof saveOrder==='function'&&!saveOrder.__abWebLinkV31){
@@ -251,13 +253,19 @@
         const raw=editing&&input?String(input.value||''):null;
         if(raw!==null&&String(raw).trim())normalizeUrl(raw);
         const out=await previous.apply(this,arguments);
-        if(raw!==null)await syncLink(obj,raw);
+        if(raw!==null){
+          const snapshot={...(obj||{})};
+          Promise.resolve().then(()=>syncLink(snapshot,raw)).catch(err=>{
+            console.error('AB COMMANDES V33 synchronisation lien web',err);
+            try{if(typeof setSync==='function')setSync(false,'Produit enregistré · lien web à resynchroniser')}catch(_){}
+          });
+        }
         return out;
       };
       wrapped.__abWebLinkV31=true;
       saveOrder=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V32 saveOrder',err)}
+  }catch(err){console.error('AB COMMANDES V33 saveOrder',err)}
 
   ensureField();installDocCount();schedule();
   const observer=new MutationObserver(schedule);
