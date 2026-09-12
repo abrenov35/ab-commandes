@@ -10,7 +10,7 @@ kpi_new='<script src="embed-kpi-shortcuts.js?v=6"></script>'
 choice_new='<script src="choice-client-label.js?v=2"></script>'
 bg_new='<script src="background-sync.js?v=5"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
-price_new='<script src="modal-product-v4.js?v=2"></script>'
+price_new='<script src="modal-product-v4.js?v=3"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
 contrast_new='<script src="embed-contrast.js?v=2"></script>'
 
@@ -104,18 +104,20 @@ for old in (
         break
 if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
 
-# Modale produit : ne se ferme que via le bouton Annuler.
+# Modale produit premium : clic extérieur bloqué ; Annuler ou Enregistrer ferment la modale.
 for old in (
     '<script src="modal-price-lock.js?v=1"></script>\n',
     '<script src="modal-price-lock.js?v=2"></script>\n',
     '<script src="modal-price-lock.js?v=3"></script>\n',
     '<script src="modal-product-v4.js?v=1"></script>\n',
     '<script src="modal-product-v4.js?v=2"></script>\n',
+    '<script src="modal-product-v4.js?v=3"></script>\n',
     '<script src="modal-price-lock.js?v=1"></script>',
     '<script src="modal-price-lock.js?v=2"></script>',
     '<script src="modal-price-lock.js?v=3"></script>',
     '<script src="modal-product-v4.js?v=1"></script>',
     '<script src="modal-product-v4.js?v=2"></script>',
+    '<script src="modal-product-v4.js?v=3"></script>',
 ):
     s=s.replace(old,'')
 s=s.replace(detail_new,detail_new+'\n'+price_new,1)
