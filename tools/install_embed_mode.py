@@ -9,6 +9,7 @@ stable_new='<script src="embed-modal-stable.js?v=1"></script>'
 kpi_new='<script src="embed-kpi-shortcuts.js?v=7"></script>'
 choice_new='<script src="choice-client-label.js?v=2"></script>'
 bg_new='<script src="background-sync.js?v=5"></script>'
+note_fix_new='<script src="command-note-save-fix.js?v=1"></script>'
 detail_new='<script src="embed-order-row-details.js?v=3"></script>'
 price_new='<script src="modal-product-v4.js?v=3"></script>'
 doc_new='<script src="doc-modal-simple.js?v=4"></script>'
@@ -93,6 +94,13 @@ for old in (
         break
 if not bg_replaced:s=s.replace(choice_new,choice_new+'\n'+bg_new,1)
 
+for old in (
+    '<script src="command-note-save-fix.js?v=1"></script>\n',
+    '<script src="command-note-save-fix.js?v=1"></script>',
+):
+    s=s.replace(old,'')
+s=s.replace(bg_new,bg_new+'\n'+note_fix_new,1)
+
 detail_replaced=False
 for old in (
     '<script src="embed-order-row-details.js?v=3"></script>',
@@ -103,7 +111,7 @@ for old in (
         if old!=detail_new:s=s.replace(old,detail_new,1)
         detail_replaced=True
         break
-if not detail_replaced:s=s.replace(bg_new,bg_new+'\n'+detail_new,1)
+if not detail_replaced:s=s.replace(note_fix_new,note_fix_new+'\n'+detail_new,1)
 
 # Modale produit premium : clic extérieur bloqué ; Annuler ou Enregistrer ferment la modale.
 for old in (
