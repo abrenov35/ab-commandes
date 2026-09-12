@@ -1,0 +1,37 @@
+name: Bump background sync cache
+
+on:
+  push:
+    paths:
+      - '.github/workflows/bump-background-sync-cache.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Force nouvelle version synchro ouverture seule
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='background-sync.js?v=5'
+          new='background-sync.js?v=6'
+          if old not in s:
+              raise SystemExit('clé background-sync v5 introuvable')
+          p.write_text(s.replace(old,new,1),encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "AB Commandes automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html
+          git commit -m "Force la nouvelle synchro Commande à l’ouverture"
+          git pull --rebase origin main
+          git push origin main
