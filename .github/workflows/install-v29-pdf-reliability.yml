@@ -1,0 +1,38 @@
+name: Install V29 PDF reliability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-v29-pdf-reliability.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Patch index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='<script src="doc-modal-simple.js?v=4"></script>'
+          new=old+'\n<script src="doc-upload-reliability-v29.js?v=1"></script>'
+          if 'doc-upload-reliability-v29.js?v=1' not in s:
+              if old not in s:
+                  raise SystemExit('doc-modal-simple v4 introuvable')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'AB COMMANDES V29 - activation upload PDF fiable'
+          git push
