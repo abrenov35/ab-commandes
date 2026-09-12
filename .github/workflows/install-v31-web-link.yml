@@ -1,0 +1,30 @@
+name: Install V31 web link
+
+on:
+  push:
+    paths:
+      - '.github/workflows/install-v31-web-link.yml'
+      - 'tools/install_v31_web_link.py'
+      - 'web-link-v31.js'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Activer le lien web produit
+        run: python tools/install_v31_web_link.py
+      - name: Publier
+        run: |
+          if git diff --quiet; then
+            echo "Aucun changement"
+            exit 0
+          fi
+          git config user.name "AB COMMANDES automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html tools/install_embed_mode.py
+          git commit -m "AB COMMANDES V31 - lien web produit"
+          git push
