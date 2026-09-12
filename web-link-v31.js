@@ -2,7 +2,7 @@
   'use strict';
 
   const TYPE='Lien web';
-  const VERSION='31.0';
+  const VERSION='32.0';
   let scheduled=false;
 
   function docs(){return (typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]}
@@ -28,17 +28,100 @@
   }
 
   function ensureStyle(){
-    if(document.getElementById('ab-web-link-v31-style'))return;
+    if(document.getElementById('ab-web-link-v32-style'))return;
     const s=document.createElement('style');
-    s.id='ab-web-link-v31-style';
+    s.id='ab-web-link-v32-style';
     s.textContent=`
       #modal #abWebLinkWrap{grid-column:1/-1!important}
       #modal #fWebLink{font-weight:600!important}
-      .ab-web-link-btn{margin-left:5px!important;min-width:40px!important;padding:8px 8px!important}
-      .ab-web-link-btn[disabled]{opacity:.35!important;cursor:default!important}
-      body.ab-embed-mode #chantierFiche .ab-order-doc{gap:5px!important;align-items:center!important}
-      body.ab-embed-mode #chantierFiche .ab-order-doc .ab-web-link-btn{margin-left:0!important}
-      @media(max-width:620px){.ab-web-link-btn{min-width:36px!important;padding:7px 5px!important}}
+
+      .ab-web-link-btn{
+        margin-left:0!important;
+        min-width:48px!important;
+        width:48px!important;
+        height:42px!important;
+        padding:0!important;
+        display:inline-flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        border:1px solid #7898b8!important;
+        background:#eaf3fc!important;
+        color:#173b63!important;
+        border-radius:9px!important;
+        font-size:18px!important;
+        line-height:1!important;
+        box-shadow:0 1px 2px rgba(25,50,80,.10)!important;
+        flex:0 0 auto!important;
+      }
+      .ab-web-link-btn:not([disabled]):hover{background:#dcecff!important;border-color:#4f82b7!important}
+      .ab-web-link-btn[disabled]{
+        opacity:.62!important;
+        background:#f3f6f9!important;
+        border-color:#aebdcb!important;
+        color:#66788b!important;
+        cursor:default!important;
+      }
+
+      body.ab-embed-mode #chantierFiche .fiche-orders .order-row.ab-row-simple{
+        grid-template-columns:minmax(180px,1.65fr) minmax(100px,.75fr) minmax(150px,1fr) 106px!important;
+      }
+      body.ab-embed-mode #chantierFiche .ab-order-doc{
+        display:flex!important;
+        align-items:center!important;
+        justify-content:flex-end!important;
+        flex-wrap:nowrap!important;
+        gap:8px!important;
+        min-width:104px!important;
+      }
+      body.ab-embed-mode #chantierFiche .ab-order-doc .doc-btn{
+        margin:0!important;
+        min-width:48px!important;
+        width:48px!important;
+        height:42px!important;
+        padding:0!important;
+        display:inline-flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        border:1px solid #7898b8!important;
+        background:#f1f6fb!important;
+        color:#173b63!important;
+        border-radius:9px!important;
+        font-size:14px!important;
+        line-height:1!important;
+        box-shadow:0 1px 2px rgba(25,50,80,.10)!important;
+        flex:0 0 auto!important;
+      }
+      body.ab-embed-mode #chantierFiche .ab-order-doc .doc-btn.has{
+        background:#dfedfb!important;
+        border-color:#5687b9!important;
+        color:#0f4f86!important;
+      }
+      body.ab-embed-mode #chantierFiche .ab-order-doc .ab-web-link-btn{
+        margin-left:0!important;
+        background:#e9f3ff!important;
+        border-color:#6f98c3!important;
+        color:#173f68!important;
+      }
+
+      @media(max-width:620px){
+        body.ab-embed-mode #chantierFiche .fiche-orders .order-row.ab-row-simple{
+          grid-template-columns:minmax(112px,1.28fr) minmax(72px,.62fr) minmax(108px,.9fr) 85px!important;
+          gap:5px!important;
+        }
+        body.ab-embed-mode #chantierFiche .ab-order-doc{
+          min-width:85px!important;
+          gap:5px!important;
+        }
+        body.ab-embed-mode #chantierFiche .ab-order-doc .doc-btn,
+        body.ab-embed-mode #chantierFiche .ab-order-doc .ab-web-link-btn,
+        .ab-web-link-btn{
+          min-width:40px!important;
+          width:40px!important;
+          height:38px!important;
+          padding:0!important;
+          border-radius:8px!important;
+        }
+      }
     `;
     document.head.appendChild(s);
   }
@@ -111,7 +194,7 @@
         wrapped.__abWebLinkV31=true;
         docCount=wrapped;
       }
-    }catch(err){console.error('AB COMMANDES V31 docCount',err)}
+    }catch(err){console.error('AB COMMANDES V32 docCount',err)}
   }
 
   function rowId(row){return String(row?.dataset?.id||row?.dataset?.ficheId||'')}
@@ -156,7 +239,7 @@
       wrapped.__abWebLinkV31=true;
       openModal=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V31 openModal',err)}
+  }catch(err){console.error('AB COMMANDES V32 openModal',err)}
 
   try{
     if(typeof saveOrder==='function'&&!saveOrder.__abWebLinkV31){
@@ -174,7 +257,7 @@
       wrapped.__abWebLinkV31=true;
       saveOrder=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V31 saveOrder',err)}
+  }catch(err){console.error('AB COMMANDES V32 saveOrder',err)}
 
   ensureField();installDocCount();schedule();
   const observer=new MutationObserver(schedule);
