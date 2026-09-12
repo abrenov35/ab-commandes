@@ -17,18 +17,98 @@
   style.id='ab-commandes-embed-kpi-shortcuts-style';
   style.textContent=`
     body.ab-embed-mode #chantierFiche .fiche-kpis{
-      display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
-      gap:7px!important;margin:0 0 14px!important;
+      display:grid!important;
+      grid-template-columns:repeat(4,minmax(0,1fr))!important;
+      gap:8px!important;
+      margin:2px 0 14px!important;
     }
     body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut{
-      min-width:0!important;cursor:pointer!important;user-select:none!important;touch-action:manipulation!important;
-      transition:border-color .12s ease,background .12s ease,transform .12s ease!important;
+      min-width:0!important;
+      min-height:62px!important;
+      padding:10px 12px!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      gap:11px!important;
+      border:1px solid #dce5f0!important;
+      border-radius:14px!important;
+      background:linear-gradient(180deg,#ffffff 0%,#fbfdff 100%)!important;
+      box-shadow:0 3px 10px rgba(28,49,77,.06)!important;
+      cursor:pointer!important;
+      user-select:none!important;
+      touch-action:manipulation!important;
+      overflow:hidden!important;
+      transition:transform .14s ease,border-color .14s ease,box-shadow .14s ease,background .14s ease!important;
     }
     body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut *{pointer-events:none!important}
-    body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut:hover{border-color:#aebed2!important;background:#fbfcfe!important}
-    body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut:active{transform:translateY(1px)!important}
-    body.ab-embed-mode #ficheAddBtn,body.ab-embed-mode #addBtn,body.ab-embed-mode #addBtnTop{display:none!important}
-    @media(max-width:760px){body.ab-embed-mode #chantierFiche .fiche-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px!important}}
+    body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut:hover{
+      transform:translateY(-1px)!important;
+      border-color:#bdcadb!important;
+      background:#fff!important;
+      box-shadow:0 6px 16px rgba(28,49,77,.10)!important;
+    }
+    body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut:active{
+      transform:translateY(0)!important;
+      box-shadow:0 2px 7px rgba(28,49,77,.08)!important;
+    }
+    body.ab-embed-mode #chantierFiche .fiche-kpis .status-dot.ab-kpi-count{
+      width:38px!important;
+      height:38px!important;
+      min-width:38px!important;
+      flex:0 0 38px!important;
+      display:inline-flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+      border-radius:50%!important;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 3px 8px rgba(27,44,70,.10)!important;
+    }
+    body.ab-embed-mode #chantierFiche .fiche-kpis .status-dot.ab-kpi-count strong{
+      display:block!important;
+      margin:0!important;
+      padding:0!important;
+      color:#fff!important;
+      font-size:16px!important;
+      font-weight:900!important;
+      line-height:1!important;
+      font-variant-numeric:tabular-nums!important;
+      text-align:center!important;
+    }
+    body.ab-embed-mode #chantierFiche .fiche-kpis .ab-kpi-label{
+      display:block!important;
+      min-width:0!important;
+      color:#172b49!important;
+      font-size:13px!important;
+      font-weight:850!important;
+      line-height:1.15!important;
+      letter-spacing:-.01em!important;
+      white-space:nowrap!important;
+      overflow:hidden!important;
+      text-overflow:ellipsis!important;
+    }
+    body.ab-embed-mode #ficheAddBtn,
+    body.ab-embed-mode #addBtn,
+    body.ab-embed-mode #addBtnTop{display:none!important}
+
+    @media(max-width:760px){
+      body.ab-embed-mode #chantierFiche .fiche-kpis{
+        grid-template-columns:repeat(4,minmax(0,1fr))!important;
+        gap:5px!important;
+      }
+      body.ab-embed-mode #chantierFiche .fiche-kpis .kpi.ab-kpi-shortcut{
+        min-height:54px!important;
+        padding:8px 7px!important;
+        gap:7px!important;
+        border-radius:11px!important;
+      }
+      body.ab-embed-mode #chantierFiche .fiche-kpis .status-dot.ab-kpi-count{
+        width:31px!important;
+        height:31px!important;
+        min-width:31px!important;
+        flex-basis:31px!important;
+      }
+      body.ab-embed-mode #chantierFiche .fiche-kpis .status-dot.ab-kpi-count strong{font-size:13px!important}
+      body.ab-embed-mode #chantierFiche .fiche-kpis .ab-kpi-label{font-size:10.5px!important}
+    }
   `;
   document.head.appendChild(style);
 
@@ -80,7 +160,7 @@
     const produit=document.getElementById('fProduit');if(produit)produit.value='';
     const qte=document.getElementById('fQte');if(qte)qte.value='';
     const fournisseur=document.getElementById('fFournisseur');if(fournisseur)fournisseur.value='';
-    const resp=document.getElementById('fResp');if(resp)resp.value='Solenn 🍭';
+    const resp=document.getElementById('fResp');if(resp)resp.value='Solenn';
     const notes=document.getElementById('fNotes');if(notes)notes.value='';
     const statusSelect=document.getElementById('fStatus');
     if(statusSelect){
@@ -100,14 +180,15 @@
   function buildKpis(host){
     host.innerHTML=KPI_DEFS.map(k=>`
       <div class="card kpi ab-kpi-shortcut" data-ab-status="${k.status}" role="button" tabindex="0" aria-label="Ajouter un produit · ${k.label}" title="Ajouter un produit · ${k.label}">
-        <span class="status-dot ${k.color}"></span><div><strong id="${k.id}">0</strong><span>${k.label}</span></div>
+        <span class="status-dot ab-kpi-count ${k.color}"><strong id="${k.id}">0</strong></span>
+        <span class="ab-kpi-label">${k.label}</span>
       </div>`).join('')+'<span id="ficheKpiProblem" hidden aria-hidden="true">0</span>';
-    host.dataset.abShortcutKpis='6';
+    host.dataset.abShortcutKpis='7';
   }
 
   function updateKpis(){
     const host=document.querySelector('#chantierFiche .fiche-kpis');if(!host)return;
-    if(host.dataset.abShortcutKpis!=='6'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
+    if(host.dataset.abShortcutKpis!=='7'||host.querySelectorAll('.ab-kpi-shortcut').length!==4)buildKpis(host);
     const list=currentFicheOrders();
     KPI_DEFS.forEach(k=>{const el=document.getElementById(k.id);if(el)el.textContent=String(list.filter(o=>String(o&&o.status||'')===k.status).length)});
     const problem=document.getElementById('ficheKpiProblem');if(problem)problem.textContent=String(list.filter(o=>String(o&&o.status||'')==='problem').length);
@@ -149,5 +230,5 @@
 
   window.addEventListener('load',refresh,{once:true});
   setTimeout(refresh,20);setTimeout(refresh,180);setTimeout(refresh,700);
-  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='6.0';
+  window.__AB_COMMANDES_EMBED_KPI_SHORTCUTS_VERSION='7.0';
 })();
