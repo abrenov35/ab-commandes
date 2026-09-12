@@ -1,14 +1,14 @@
 (function(){
   'use strict';
 
-  const VERSION='28.1';
+  const VERSION='28.2';
   const MAX_ATTEMPTS=7;
   const BASE_DELAY=260;
   const TRACKED_ACTIONS=new Set(['upsert','delete','document_upsert','document_delete']);
   const ORDER_FIELDS=['chantier','produit','qte','fournisseur','responsable','status','notes'];
   const DOC_FIELDS=['commande_id','chantier','type','nom_fichier','url_pdf','source','date_document','auteur'];
 
-  if(typeof window.post!=='function'||typeof window.GAS==='undefined'){
+  if(typeof window.post!=='function'||typeof GAS==='undefined'){
     console.warn('AB COMMANDES V28 · post/GAS indisponible');
     return;
   }
