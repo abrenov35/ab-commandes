@@ -1,0 +1,33 @@
+name: AB COMMANDES V47 document upload modal
+on:
+  push:
+    paths:
+      - 'document-upload-modal-v47.js'
+      - '.github/workflows/ab-commandes-v47-document-upload-modal.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer V47 dans index
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="document-upload-modal-v47.js?v=47"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+          p.write_text(s)
+          PY
+      - name: Commit
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "AB COMMANDES V47 - activer modale upload document"
+          git push
