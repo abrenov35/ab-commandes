@@ -6,6 +6,7 @@
 
   const MAX_BYTES=8*1024*1024;
   let busy=false;
+  let pendingUpload=null;
 
   function getOrder(){
     const id=typeof currentDocOrderId!=='undefined'?String(currentDocOrderId||''):'';
@@ -53,11 +54,32 @@
     return String(file&&file.type||'').trim()||'application/octet-stream';
   }
 
+  function fileKey(file,order){
+    return [
+      String(order&&order.id||''),
+      String(file&&file.name||''),
+      String(file&&file.size||0),
+      String(file&&file.lastModified||0)
+    ].join('|');
+  }
+
+  function getDocId(file,order){
+    const key=fileKey(file,order);
+    if(pendingUpload&&pendingUpload.key===key&&pendingUpload.id)return pendingUpload.id;
+    const id=(typeof uid==='function')?uid():(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
+    pendingUpload={key:key,id:String(id)};
+    return pendingUpload.id;
+  }
+
+  function clearPending(){
+    pendingUpload=null;
+  }
+
   function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
   function targetedJsonp(action,id){
     return new Promise((resolve,reject)=>{
-      const cb='__abFileV30_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      const cb='__abFileV43_'+Date.now()+'_'+Math.random().toString(36).slice(2);
       const script=document.createElement('script');
       let done=false;
       const cleanup=()=>{
@@ -74,13 +96,19 @@
     });
   }
 
+  async function findDocument(id){
+    try{
+      const res=await targetedJsonp('document',id);
+      if(res&&res.ok&&res.document&&String(res.document.id||'')===String(id))return res.document;
+    }catch(_){ }
+    return null;
+  }
+
   async function waitForDocument(id){
-    for(let i=0;i<8;i++){
-      if(i)await sleep(650);
-      try{
-        const res=await targetedJsonp('document',id);
-        if(res&&res.ok&&res.document&&String(res.document.id||'')===String(id))return res.document;
-      }catch(_){ }
+    for(let i=0;i<12;i++){
+      if(i)await sleep(750);
+      const found=await findDocument(id);
+      if(found)return found;
     }
     return null;
   }
@@ -95,6 +123,7 @@
     try{if(typeof renderAll==='function')renderAll();}catch(_){ }
     const input=document.getElementById('abDriveFile');
     if(input)input.value='';
+    clearPending();
     setTimeout(()=>{
       try{
         if(typeof closeDocs==='function')closeDocs();
@@ -114,12 +143,23 @@
     if(file.size>MAX_BYTES){status('Fichier trop volumineux : 8 Mo maximum.','err');return;}
 
     busy=true;
-    setButton('Envoi en cours…',true);
-    status('Envoi vers Google Drive…','');
+    setButton('Vérification…',true);
 
-    const docId=(typeof uid==='function')?uid():(crypto.randomUUID?crypto.randomUUID():String(Date.now()));
+    const docId=getDocId(file,order);
 
     try{
+      status('Vérification d’un envoi précédent…','');
+      const alreadySaved=await findDocument(docId);
+      if(alreadySaved){
+        status('Fichier déjà enregistré.','ok');
+        setButton('Fichier enregistré',true);
+        closeAfterSuccess(alreadySaved);
+        busy=false;
+        return;
+      }
+
+      status('Envoi vers Google Drive…','');
+      setButton('Envoi en cours…',true);
       const base64=await fileToBase64(file);
       const fileName=String(file.name||'fichier');
       const payload={
@@ -144,13 +184,13 @@
 
       status('Vérification de l’enregistrement…','');
       const found=await waitForDocument(docId);
-      if(!found)throw new Error('Fichier non enregistré. Vérifie le journal Apps Script.');
+      if(!found)throw new Error('Envoi non confirmé. Réessayer vérifiera d’abord le premier envoi.');
 
       status('Fichier enregistré.','ok');
       setButton('Fichier enregistré',true);
       closeAfterSuccess(found);
     }catch(err){
-      console.error('AB COMMANDES V30 · upload fichier',err);
+      console.error('AB COMMANDES V43 · upload fichier',err);
       busy=false;
       status((err&&err.message)||'Échec de l’envoi du fichier.','err');
       setButton('Réessayer',false);
@@ -159,6 +199,10 @@
 
     busy=false;
   }
+
+  document.addEventListener('change',function(e){
+    if(e.target&&e.target.id==='abDriveFile')clearPending();
+  },true);
 
   document.addEventListener('click',function(e){
     const btn=e.target&&e.target.closest?e.target.closest('#addDocBtn'):null;
@@ -169,6 +213,6 @@
     upload();
   },true);
 
-  window.__AB_COMMANDES_FILE_RELIABILITY_VERSION='30.0';
-  window.__AB_COMMANDES_PDF_RELIABILITY_VERSION='30.0';
+  window.__AB_COMMANDES_FILE_RELIABILITY_VERSION='43.0';
+  window.__AB_COMMANDES_PDF_RELIABILITY_VERSION='43.0';
 })();
