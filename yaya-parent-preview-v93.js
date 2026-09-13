@@ -1,14 +1,14 @@
-// V94 — ouvre les documents AB COMMANDES dans le lecteur principal Yaya avec suppression
+// V95 — ouvre les documents AB COMMANDES dans le lecteur principal Yaya avec suppression et modale propre
 (function(){
   'use strict';
 
-  if(window.__AB_COMMANDES_YAYA_PARENT_PREVIEW_V94)return;
-  window.__AB_COMMANDES_YAYA_PARENT_PREVIEW_V94=true;
+  if(window.__AB_COMMANDES_YAYA_PARENT_PREVIEW_V95)return;
+  window.__AB_COMMANDES_YAYA_PARENT_PREVIEW_V95=true;
 
   let currentDocs=[];
   let currentIndex=0;
   let currentOrderId='';
-  const STYLE_ID='ab-commandes-yaya-parent-tabs-v94';
+  const STYLE_ID='ab-commandes-yaya-parent-tabs-v95';
 
   function docsList(){
     try{return Array.isArray(documents)?documents:[]}catch(_){return []}
@@ -113,14 +113,44 @@
         font-weight:900!important;
         cursor:pointer!important;
       }
-      #modalRoot .yaya-command-preview-delete:hover{
-        background:#ffe9ec!important;
-        border-color:#df7d89!important;
+      #modalRoot .yaya-command-preview-delete:hover{background:#ffe9ec!important;border-color:#df7d89!important;}
+      #modalRoot .yaya-command-preview-delete:disabled{opacity:.45!important;cursor:not-allowed!important;}
+      .yaya-command-confirm-overlay{
+        position:fixed!important;
+        inset:0!important;
+        z-index:2147483646!important;
+        display:flex!important;
+        align-items:center!important;
+        justify-content:center!important;
+        padding:20px!important;
+        background:rgba(15,23,42,.48)!important;
+        backdrop-filter:blur(2px)!important;
       }
-      #modalRoot .yaya-command-preview-delete:disabled{
-        opacity:.45!important;
-        cursor:not-allowed!important;
+      .yaya-command-confirm-box{
+        width:min(92vw,430px)!important;
+        background:#fff!important;
+        border:1px solid #dfe6ef!important;
+        border-radius:16px!important;
+        box-shadow:0 24px 70px rgba(15,23,42,.28)!important;
+        padding:22px!important;
+        color:#14213d!important;
+        font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif!important;
       }
+      .yaya-command-confirm-title{font-size:18px!important;font-weight:800!important;margin:0 0 8px!important;}
+      .yaya-command-confirm-text{font-size:14px!important;line-height:1.45!important;color:#55657b!important;margin:0!important;overflow-wrap:anywhere!important;}
+      .yaya-command-confirm-actions{display:flex!important;justify-content:flex-end!important;gap:10px!important;margin-top:20px!important;}
+      .yaya-command-confirm-btn{
+        min-width:96px!important;
+        height:38px!important;
+        border-radius:9px!important;
+        padding:0 14px!important;
+        font-size:13px!important;
+        font-weight:800!important;
+        cursor:pointer!important;
+      }
+      .yaya-command-confirm-cancel{background:#fff!important;color:#314966!important;border:1px solid #cbd6e4!important;}
+      .yaya-command-confirm-delete{background:#c92d42!important;color:#fff!important;border:1px solid #c92d42!important;}
+      .yaya-command-confirm-delete:hover{background:#b62337!important;border-color:#b62337!important;}
     `;
     doc.head.appendChild(style);
   }
@@ -138,6 +168,62 @@
     }catch(_){ }
   }
 
+  function confirmDelete(parent,fileName){
+    return new Promise(resolve=>{
+      const doc=parent.document;
+      const overlay=doc.createElement('div');
+      overlay.className='yaya-command-confirm-overlay';
+
+      const box=doc.createElement('div');
+      box.className='yaya-command-confirm-box';
+
+      const title=doc.createElement('div');
+      title.className='yaya-command-confirm-title';
+      title.textContent='Supprimer le document';
+
+      const text=doc.createElement('p');
+      text.className='yaya-command-confirm-text';
+      text.textContent='Voulez-vous vraiment supprimer « '+fileName+' » ?';
+
+      const actions=doc.createElement('div');
+      actions.className='yaya-command-confirm-actions';
+
+      const cancel=doc.createElement('button');
+      cancel.type='button';
+      cancel.className='yaya-command-confirm-btn yaya-command-confirm-cancel';
+      cancel.textContent='Annuler';
+
+      const remove=doc.createElement('button');
+      remove.type='button';
+      remove.className='yaya-command-confirm-btn yaya-command-confirm-delete';
+      remove.textContent='Supprimer';
+
+      let done=false;
+      function finish(value){
+        if(done)return;
+        done=true;
+        doc.removeEventListener('keydown',onKey,true);
+        overlay.remove();
+        resolve(value);
+      }
+      function onKey(e){
+        if(e.key==='Escape'){e.preventDefault();finish(false);}
+        if(e.key==='Enter'){e.preventDefault();finish(true);}
+      }
+
+      cancel.onclick=()=>finish(false);
+      remove.onclick=()=>finish(true);
+      overlay.onclick=e=>{if(e.target===overlay)finish(false);};
+      doc.addEventListener('keydown',onKey,true);
+
+      actions.append(cancel,remove);
+      box.append(title,text,actions);
+      overlay.appendChild(box);
+      doc.body.appendChild(overlay);
+      setTimeout(()=>remove.focus(),0);
+    });
+  }
+
   async function removeAt(parent,index,button){
     const item=currentDocs[index];
     if(!item)return;
@@ -147,12 +233,7 @@
       return;
     }
 
-    let ok=false;
-    try{
-      ok=parent.confirm('Supprimer définitivement le document « '+item.name+' » ?');
-    }catch(_){
-      ok=window.confirm('Supprimer définitivement le document « '+item.name+' » ?');
-    }
+    const ok=await confirmDelete(parent,item.name);
     if(!ok)return;
 
     if(typeof window.deleteDocument!=='function'){
@@ -270,13 +351,13 @@
       setTimeout(install,120);
       return;
     }
-    if(previous.__abYayaParentPreviewV94)return;
+    if(previous.__abYayaParentPreviewV95)return;
 
     const wrapped=function(orderId){
       if(delegate(orderId))return;
       return previous.apply(this,arguments);
     };
-    wrapped.__abYayaParentPreviewV94=true;
+    wrapped.__abYayaParentPreviewV95=true;
     wrapped.__abPreviousOpenDocs=previous;
     window.openDocs=wrapped;
   }
