@@ -1,0 +1,39 @@
+name: AB COMMANDES V90 aperçu documents Yaya
+
+on:
+  push:
+    paths:
+      - '.github/workflows/ab-commandes-v90-yaya-preview.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Bump cache lecteur documents
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='document-preview-fit-v88.js?v=89'
+          new='document-preview-fit-v88.js?v=90'
+          if new not in s:
+              if old not in s:
+                  raise SystemExit('marqueur lecteur documents introuvable')
+              s=s.replace(old,new,1)
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit index
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'V90 - activer lecteur documents style Yaya'
+          git push origin main
