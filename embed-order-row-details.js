@@ -50,10 +50,11 @@
       body.ab-embed-mode #abEditDocBtn.ab-visible{display:inline-flex!important;align-items:center!important;justify-content:center!important}
 
       #${CONFIRM_ID}{
-        position:fixed!important;inset:0!important;z-index:99999!important;
+        position:absolute!important;left:0!important;right:0!important;z-index:99999!important;
         display:none!important;align-items:center!important;justify-content:center!important;
         padding:18px!important;background:rgba(14,28,48,.42)!important;
         backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important;
+        overflow:hidden!important;
       }
       #${CONFIRM_ID}.show{display:flex!important}
       #${CONFIRM_ID} .ab-confirm-card{
@@ -102,6 +103,27 @@
     document.head.appendChild(style);
   }
 
+  function positionConfirmOverlay(overlay){
+    if(!overlay)return;
+    let top=0;
+    let height=Math.max(260,window.innerHeight||600);
+    try{
+      const frame=window.frameElement;
+      if(frame&&window.parent&&window.parent!==window){
+        const rect=frame.getBoundingClientRect();
+        const parentH=Math.max(260,window.parent.innerHeight||height);
+        const visibleTop=Math.max(0,-rect.top);
+        const visibleBottom=Math.min(rect.height,parentH-rect.top);
+        const visibleH=Math.max(260,visibleBottom-visibleTop);
+        top=visibleTop;
+        height=visibleH;
+      }
+    }catch(_){ }
+    overlay.style.setProperty('top',Math.round(top)+'px','important');
+    overlay.style.setProperty('height',Math.round(height)+'px','important');
+    overlay.style.setProperty('bottom','auto','important');
+  }
+
   function customDeleteConfirm(){
     let overlay=document.getElementById(CONFIRM_ID);
     if(!overlay){
@@ -127,11 +149,14 @@
       const cancel=overlay.querySelector('.ab-confirm-cancel');
       const del=overlay.querySelector('.ab-confirm-delete');
       let done=false;
+      const reposition=()=>positionConfirmOverlay(overlay);
       const finish=value=>{
         if(done)return;done=true;
         overlay.classList.remove('show');
         cancel.onclick=null;del.onclick=null;overlay.onclick=null;
         document.removeEventListener('keydown',onKey,true);
+        window.removeEventListener('resize',reposition);
+        try{window.parent.removeEventListener('scroll',reposition,true);window.parent.removeEventListener('resize',reposition)}catch(_){ }
         resolve(value);
       };
       const onKey=ev=>{if(ev.key==='Escape'){ev.preventDefault();finish(false)}};
@@ -139,8 +164,12 @@
       del.onclick=()=>finish(true);
       overlay.onclick=ev=>{if(ev.target===overlay)finish(false)};
       document.addEventListener('keydown',onKey,true);
+      window.addEventListener('resize',reposition);
+      try{window.parent.addEventListener('scroll',reposition,true);window.parent.addEventListener('resize',reposition)}catch(_){ }
+      positionConfirmOverlay(overlay);
       overlay.classList.add('show');
-      setTimeout(()=>cancel.focus(),0);
+      requestAnimationFrame(reposition);
+      setTimeout(()=>{reposition();cancel.focus()},0);
     });
   }
 
@@ -300,5 +329,5 @@
   window.addEventListener('load',schedule,{once:true});
   setTimeout(schedule,100);
   setTimeout(schedule,500);
-  window.__AB_COMMANDES_ORDER_ROW_DETAILS_VERSION='3.1-custom-delete-modal';
+  window.__AB_COMMANDES_ORDER_ROW_DETAILS_VERSION='3.2-visible-viewport-confirm';
 })();
