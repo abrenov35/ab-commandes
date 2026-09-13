@@ -1,0 +1,33 @@
+name: AB COMMANDES V76 ajustement document
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'AB COMMANDES V76 - ajuster document ecran'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajouter V76 dans index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="document-preview-fit-v76.js?v=76"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>')
+              p.write_text(s)
+          PY
+      - name: Commit publication
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "AB COMMANDES V76 - publier ajustement document"
+          git push
