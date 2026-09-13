@@ -1,10 +1,10 @@
 (function(){
   'use strict';
 
-  const VERSION='88.0';
+  const VERSION='89.0';
   const MODAL_ID='abDocumentPreviewV64';
   const STYLE_ID='abDocumentPreviewFitV88';
-  const RATIO=.78;
+  const RATIO=.70;
 
   function injectStyle(){
     let s=document.getElementById(STYLE_ID);
@@ -20,6 +20,7 @@
       }
       #${MODAL_ID} .ab-doc-preview-body{
         min-height:0!important;
+        height:100%!important;
         margin-left:auto!important;
         margin-right:auto!important;
         padding:0!important;
@@ -58,6 +59,7 @@
       const w=Math.round(h*RATIO);
       body.style.setProperty('width',w+'px','important');
       body.style.setProperty('max-width','calc(100vw - 12px)','important');
+      body.style.setProperty('height','100%','important');
       body.style.setProperty('margin-left','auto','important');
       body.style.setProperty('margin-right','auto','important');
       body.style.setProperty('overflow','hidden','important');
@@ -69,12 +71,13 @@
       frame.style.setProperty('position','static','important');
       frame.style.setProperty('transform','none','important');
       frame.style.setProperty('pointer-events','auto','important');
+      frame.setAttribute('scrolling','yes');
     });
   }
 
   function installOpenDocsWrapper(){
     const previous=window.openDocs;
-    if(typeof previous!=='function'||previous.__abFitV88)return;
+    if(typeof previous!=='function'||previous.__abFitV89)return;
     const wrapped=function(){
       const out=previous.apply(this,arguments);
       requestAnimationFrame(apply);
@@ -82,7 +85,7 @@
       setTimeout(apply,180);
       return out;
     };
-    wrapped.__abFitV88=true;
+    wrapped.__abFitV89=true;
     wrapped.__abPreviousOpenDocs=previous;
     window.openDocs=wrapped;
   }
