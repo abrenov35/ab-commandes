@@ -1,0 +1,33 @@
+name: AB COMMANDES V52 status toggle
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: contains(github.event.head_commit.message, 'AB COMMANDES V52 - publier ouverture groupes')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Charger le correctif V52
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="status-groups-toggle-fix-v52.js?v=52"></script>'
+          s=s.replace(tag+'\n','').replace(tag,'')
+          s=s.replace('</body>', tag+'\n</body>')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "AB COMMANDES V52 - activer ouverture groupes statuts"
+          git push
