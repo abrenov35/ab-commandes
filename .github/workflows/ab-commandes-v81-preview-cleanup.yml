@@ -1,0 +1,49 @@
+name: AB COMMANDES V81 nettoyage lecteur document
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: github.event.head_commit.message == 'AB COMMANDES V81 - nettoyer lecteur document'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Retirer anciens correctifs lecteur concurrents
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old=[
+            'document-preview-fit-v71.js',
+            'document-preview-toolbar-v73.js',
+            'document-preview-toolbar-v74.js',
+            'document-preview-final-v75.js',
+            'document-preview-fit-v76.js',
+            'document-preview-page-mode-v77.js',
+            'document-preview-readable-v78.js',
+            'document-preview-restore-v79.js',
+          ]
+          lines=[]
+          for line in s.splitlines():
+            if any(name in line for name in old):
+              continue
+            lines.append(line)
+          s='\n'.join(lines)+'\n'
+          # Force un nouveau cache du lecteur stable.
+          s=s.replace('document-preview-stable-v80.js?v=801','document-preview-stable-v80.js?v=811')
+          s=s.replace('document-preview-stable-v80.js?v=80','document-preview-stable-v80.js?v=811')
+          p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "AB COMMANDES V81 - lecteur document nettoye"
+          git push
