@@ -73,224 +73,57 @@
 
     <section id="chantiers" class="view"><div class="top"><div class="title"><h1>Chantiers</h1><p>Vue simple de la sécurisation des commandes</p></div></div><div class="card table-card" style="margin-top:24px"><div class="table-wrap"><table class="chantier-table"><thead><tr><th>Chantier</th><th>Responsable</th><th>État commandes</th><th>Alerte</th></tr></thead><tbody id="chantierSummary2"></tbody></table></div></div></section>
 
-    <section id="fournisseurs" class="view"><div class="top"><div class="title"><h1>Fournisseurs</h1><p>Commandes regroupées par fournisseur</p></div></div><div id="supplierList" class="list" style="margin-top:24px"></div></section>
+    <div id="modal" class="modal"><div class="dialog"><h3 id="modalTitle">Ajouter une commande</h3><div class="form-grid"><div><label class="label">Chantier</label><select id="fChantier" class="field"></select></div><div><label class="label">Produit / besoin</label><input id="fProduit" class="field"></div><div><label class="label">Quantité</label><input id="fQte" class="field"></div><div><label class="label">Fournisseur</label><input id="fFournisseur" class="field"></div><div><label class="label">Responsable</label><select id="fResp" class="field"></select></div><div><label class="label">Statut</label><select id="fStatus" class="field"></select></div><div class="full"><label class="label">Notes</label><textarea id="fNotes" class="field" rows="3"></textarea></div></div><div class="dialog-actions"><button id="cancelBtn" class="btn secondary">Annuler</button><button id="saveBtn" class="btn">Enregistrer</button></div></div></div>
+    <div id="docModal" class="modal"><div class="dialog"><h3>Documents de la commande</h3><div id="docNotice" class="notice">Ajoute ici les PDF, bons de commande, confirmations ou factures utiles.</div><div id="docList" class="doc-list"></div><div class="form-grid" style="margin-top:14px"><div><label class="label">Type</label><select id="docType" class="field"><option>Bon de commande</option><option>Confirmation</option><option>Facture</option><option>Autre</option></select></div><div><label class="label">Date</label><input id="docDate" type="date" class="field"></div><div class="full"><label class="label">Nom / référence</label><input id="docName" class="field"></div><div class="full"><label class="label">Lien PDF / Drive</label><input id="docUrl" class="field" placeholder="https://..."></div></div><div class="dialog-actions"><button id="closeDocBtn" class="btn secondary">Fermer</button><button id="addDocBtn" class="btn">Ajouter le document</button></div></div></div>
+    <div id="saving" class="saving">Enregistrement…</div>
   </main>
 </div>
-
-<div id="modal" class="modal"><div class="dialog"><h3 id="modalTitle">Ajouter un produit</h3><div class="notice">Simple : chantier, produit, fournisseur et statut. Le statut suffit pour savoir où en est la commande.</div><div class="form-grid">
-  <div class="full"><label class="label">Chantier Yaya</label><select id="fChantier" class="field"><option value="">— Choisir un chantier —</option></select><div id="yayaChantierInfo" class="small" style="margin-top:6px">Le chantier est sélectionné depuis Yaya.</div></div>
-  <div><label class="label">Produit / besoin</label><input id="fProduit" class="field" placeholder="Ex. Faïence SDB"></div>
-  <div><label class="label">Fournisseur</label><input id="fFournisseur" class="field" placeholder="Ex. CDO"></div>
-  <div><label class="label">Quantité <span class="small">(facultatif)</span></label><input id="fQte" class="field" placeholder="Ex. 28 m²"></div>
-  <div><label class="label">Responsable</label><select id="fResp" class="field"><option value=""></option><option>Solenn 🍭</option><option>Mathieu ⚽️</option><option>Morvan ⛑️</option><option>Pascale</option><option>Younès</option></select></div>
-  <div class="full"><label class="label">Statut</label><select id="fStatus" class="field"></select></div>
-  <div class="full"><label class="label">Précision <span class="small">(facultatif)</span></label><input id="fNotes" class="field" placeholder="Uniquement si une précision est utile"></div>
-</div><div class="dialog-actions"><button id="cancelBtn" class="btn secondary">Annuler</button><button id="saveBtn" class="btn">Enregistrer</button></div></div></div>
-
-<div id="docModal" class="modal"><div class="dialog"><h3 id="docTitle">Documents</h3><div class="notice">Les PDF restent dans Drive, Dropbox ou Yaya. Ici on stocke uniquement leur lien pour les visualiser rapidement.</div><div class="form-grid">
-  <div><label class="label">Type</label><select id="dType" class="field"><option>Bon de commande</option><option>Devis fournisseur</option><option>Accusé réception</option><option>Bon de livraison</option><option>Autre</option></select></div>
-  <div><label class="label">Nom du fichier</label><input id="dName" class="field" placeholder="Ex. BC CDO faïence"></div>
-  <div class="full"><label class="label">URL du PDF</label><input id="dUrl" class="field" placeholder="https://..."></div>
-  <div><label class="label">Source</label><select id="dSource" class="field"><option>Yaya</option><option>Dropbox</option><option>Google Drive</option><option>Autre</option></select></div>
-  <div><label class="label">Date document</label><input id="dDate" type="date" class="field"></div>
-</div><div class="dialog-actions"><button id="closeDocBtn" class="btn secondary">Fermer</button><button id="addDocBtn" class="btn">+ Ajouter le PDF</button></div><div id="docList" class="doc-list"></div></div></div>
-
-<div id="saving" class="saving">Enregistrement…</div>
 <script>
-const GAS='https://script.google.com/macros/s/AKfycbxswcobk2vJMh0qlbxseImn1SZ7GBubSblW5LXFrRLI3zxs-M9zb3NwfUS-rVHDtoY/exec';
-const YAYA_API='https://script.google.com/macros/s/AKfycbx6IwMFf2plAq7i8qf8qF6f6MMC-1-WynAqn1ZRqCZrVqHeE9a1ygSSTzp5uOf0L3bn/exec';
-const STATUSES={choice:{label:'Choix client à faire',color:'purple'},todo:{label:'À commander',color:'orange'},ordered:{label:'Commandé',color:'blue'},received:{label:'Reçu',color:'green'},problem:{label:'Problème',color:'red'}};
-let orders=[],documents=[],yayaChantiers=[],editId=null,currentDocOrderId=null,loading=false,yayaLoaded=false,selectedChantierId='',selectedChantierName='',presetChantierId='';
-/* AB_COMMANDES_YAYA_DEEPLINK_V1 */
-const DEEP_LINK_PARAMS=new URL(window.location.href).searchParams;
-const DEEP_LINK_CHANTIER_ID=String(DEEP_LINK_PARAMS.get('chantierId')||'').trim();
-const DEEP_LINK_CHANTIER_NAME=String(DEEP_LINK_PARAMS.get('chantierName')||'').trim();
-let deepLinkOpened=false;
-function tryOpenDeepLink(){
-  if(deepLinkOpened||(!DEEP_LINK_CHANTIER_ID&&!DEEP_LINK_CHANTIER_NAME))return;
-  const y=DEEP_LINK_CHANTIER_ID?yayaChantiers.find(c=>String(c.id||'')===DEEP_LINK_CHANTIER_ID):null;
-  const id=String(y?.id||DEEP_LINK_CHANTIER_ID||'');
-  const name=String(y?.nom||DEEP_LINK_CHANTIER_NAME||'').trim();
-  if(!id&&!name)return;
-  if(!name&&DEEP_LINK_CHANTIER_ID&&!yayaChantiers.length)return;
-  deepLinkOpened=true;
-  openChantierFiche(id,name||'Chantier');
-}
-
+const API='https://script.google.com/macros/s/AKfycbxswcobk2vJMh0qlbxseImn1SZ7GBubSblW5LXFrRLI3zxs-M9zb3NwfUS-rVHDtoY/exec';
+const YAYA_API='https://script.google.com/macros/s/AKfycbx6IwMFf2plA7i8qf8qF6f6MMC-1-WynAqn1ZRqCZrVqHeE9a1ygSSTzp5uOf0L3bn/exec';
+const STATUSES={todo:{label:'À commander',color:'orange'},ordered:{label:'Commandé',color:'blue'},received:{label:'Reçu',color:'green'},problem:{label:'Problème / rupture',color:'red'},choice:{label:'Choix client à faire',color:'purple'}};
+let orders=[],documents=[],yayaChantiers=[],editId=null,currentDocOrder=null,selectedChantierId=null,selectedChantierName='',presetChantierId='';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
-function uid(){return (crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(36).slice(2)}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
-function setSync(ok,msg){$('#syncDot').className='dot-sync '+(ok?'ok':'err');$('#syncTitle').textContent=ok?'Connecté au Sheet':'Erreur de connexion';$('#lastSave').textContent=msg||''}
-function showSaving(v,text='Enregistrement…'){loading=v;$('#saving').textContent=text;$('#saving').classList.toggle('show',v)}
-function normName(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toUpperCase()}
-function yayaLabel(c){const n=String(c?.nom||'').trim(),num=String(c?.numero||'').trim();return num?n+' ('+num+')':n}
-function activeYayaChantiers(){return yayaChantiers.filter(c=>c.statut!=='Terminé'&&c.statut!=='Archivé'&&!['AB RENOV35','AB RENOV 35'].includes(normName(c.nom)))}
-function findYayaForOrder(o){if(!o)return null;let c=yayaChantiers.find(x=>String(x.id)===String(o.chantierId||''));if(c)return c;const k=normName(o.chantier);const hits=yayaChantiers.filter(x=>normName(x.nom)===k);return hits.length===1?hits[0]:null}
-function refreshChantierSelect(selectedId='',legacyName=''){
-  const el=$('#fChantier');if(!el)return;
-  const current=String(selectedId||'');
-  let list=activeYayaChantiers().slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
-  const selectedAll=yayaChantiers.find(c=>String(c.id)===current);
-  if(selectedAll&&!list.some(c=>String(c.id)===current))list.unshift(selectedAll);
-  el.innerHTML='<option value="">— Choisir un chantier Yaya —</option>'+list.map(c=>`<option value="${esc(c.id)}">${esc(yayaLabel(c))}</option>`).join('');
-  if(current&&list.some(c=>String(c.id)===current))el.value=current;
-  else if(legacyName){const k=normName(legacyName),hits=list.filter(c=>normName(c.nom)===k);if(hits.length===1)el.value=String(hits[0].id)}
-  const info=$('#yayaChantierInfo');if(info)info.textContent=yayaLoaded?`${list.length} chantiers actifs synchronisés depuis Yaya.`:'Connexion à Yaya…';
-}
-const AB_COMMANDES_YAYA_CACHE_V1='AB_COMMANDES_YAYA_CHANTIERS_V1';
-function hydrateYayaCache(){
-  try{
-    const yayaRaw=localStorage.getItem('YAYA_CACHE_DATA_V2');
-    if(yayaRaw){
-      const data=JSON.parse(yayaRaw);
-      if(Array.isArray(data?.chantiers)&&data.chantiers.length){
-        yayaChantiers=data.chantiers;yayaLoaded=true;
-        refreshChantierSelect($('#fChantier')?.value||'','');
-        const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
-        return true;
-      }
-    }
-  }catch(e){}
-  try{
-    const raw=localStorage.getItem(AB_COMMANDES_YAYA_CACHE_V1);
-    const cached=raw?JSON.parse(raw):null;
-    if(Array.isArray(cached)&&cached.length){
-      yayaChantiers=cached;yayaLoaded=true;
-      refreshChantierSelect($('#fChantier')?.value||'','');
-      const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
-      return true;
-    }
-  }catch(e){}
-  return false;
-}
-async function loadYayaChantiers(force=false){
-  if(!yayaChantiers.length)hydrateYayaCache();
-  let lastErr=null;
-  for(let tentative=1;tentative<=3;tentative++){
-    try{
-      const ctrl=new AbortController();
-      const timer=setTimeout(()=>ctrl.abort(),tentative===1?12000:tentative===2?16000:20000);
-      let r;
-      try{
-        const sep=YAYA_API.includes('?')?'&':'?';
-        r=await fetch(YAYA_API+sep+'_abcommandes='+Date.now()+'_'+tentative+(force?'&force=1':''),{method:'GET',cache:'no-store',signal:ctrl.signal});
-      }finally{clearTimeout(timer)}
-      const txt=await r.text();
-      let j;
-      try{j=JSON.parse(txt)}catch(e){throw new Error('Réponse Yaya invalide')}
-      if(!j.ok)throw new Error(j.error||'Réponse Yaya invalide');
-      const list=Array.isArray(j.data?.chantiers)?j.data.chantiers:[];
-      if(!list.length)throw new Error('Aucun chantier reçu de Yaya');
-      yayaChantiers=list;yayaLoaded=true;
-      try{localStorage.setItem(AB_COMMANDES_YAYA_CACHE_V1,JSON.stringify(list))}catch(e){}
-      refreshChantierSelect($('#fChantier')?.value||'','');
-      const badge=document.querySelector('.yaya');if(badge)badge.textContent=`Yaya · ${activeYayaChantiers().length} chantiers`;
-      return true;
-    }catch(e){
-      lastErr=e;
-      if(tentative<3)await new Promise(r=>setTimeout(r,500*tentative));
-    }
-  }
-  console.error('Yaya:',lastErr);
-  const cached=hydrateYayaCache();
-  yayaLoaded=!!cached;
-  const info=$('#yayaChantierInfo');
-  if(info)info.textContent=cached?`${activeYayaChantiers().length} chantiers chargés depuis Yaya.`:'Impossible de charger les chantiers Yaya.';
-  return cached;
-}
-
-function jsonp(action){return new Promise((resolve,reject)=>{const cb='abcb_'+Date.now()+'_'+Math.floor(Math.random()*9999);const s=document.createElement('script');const t=setTimeout(()=>{cleanup();reject(new Error('Délai dépassé'))},12000);function cleanup(){clearTimeout(t);delete window[cb];s.remove()}window[cb]=data=>{cleanup();resolve(data)};s.onerror=()=>{cleanup();reject(new Error('Connexion impossible'))};s.src=GAS+'?action='+encodeURIComponent(action)+'&callback='+cb+'&_='+Date.now();document.body.appendChild(s)})}
-async function post(data){const body=new URLSearchParams();Object.entries(data).forEach(([k,v])=>body.append(k,v==null?'':String(v)));await fetch(GAS,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body});}
-async function loadAll(silent=false){if(!silent)showSaving(true,'Synchronisation…');try{const [a,b]=await Promise.all([jsonp('list'),jsonp('documents')]);if(!a.ok)throw new Error(a.error||'Lecture commandes impossible');if(!b.ok)throw new Error(b.error||'Lecture documents impossible');orders=(a.commandes||[]).map(normalizeFromSheet);documents=b.documents||[];setSync(true,'Synchronisé '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));renderAll()}catch(e){console.error(e);setSync(false,e.message)}finally{if(!silent)showSaving(false)}}
-function normalizeFromSheet(o){return {...o,id:String(o.id||''),chantierId:String(o.chantierId||o.chantier_id||''),chantier:String(o.chantier||''),produit:String(o.produit||''),qte:String(o.qte||''),fournisseur:String(o.fournisseur||''),responsable:String(o.responsable||''),date:String(o.date||''),start:String(o.start||''),status:STATUSES[o.status]?o.status:'choice'}}
-async function saveOrder(obj){showSaving(true);try{await post({action:'upsert',...obj});await new Promise(r=>setTimeout(r,500));await loadAll(true)}catch(e){alert('Enregistrement impossible : '+e.message)}finally{showSaving(false)}}
-async function deleteOrder(id){showSaving(true);try{await post({action:'delete',id});await new Promise(r=>setTimeout(r,500));await loadAll(true)}finally{showSaving(false)}}
-async function saveDocument(doc){showSaving(true,'Ajout du PDF…');try{await post({action:'document_upsert',...doc});await new Promise(r=>setTimeout(r,500));await loadAll(true);renderDocList()}finally{showSaving(false)}}
-async function deleteDocument(id){showSaving(true);try{await post({action:'document_delete',id});await new Promise(r=>setTimeout(r,500));await loadAll(true);renderDocList()}finally{showSaving(false)}}
-function statusHtml(k){const s=STATUSES[k]||STATUSES.choice;return `<span class="status-label"><span class="mini-dot ${s.color}"></span>${s.label}</span>`}
-function fmtDate(v){if(!v)return '—';const p=String(v).slice(0,10).split('-');return p.length===3?`${p[2]}/${p[1]}`:v}
-function filtered(){const q=$('#search').value.trim().toLowerCase(),r=$('#filterResp').value,st=$('#filterStatus').value;return orders.filter(o=>(!q||[o.chantier,o.produit,o.fournisseur].join(' ').toLowerCase().includes(q))&&(!r||o.responsable===r)&&(!st||o.status===st))}
-function refreshFilters(){const cr=$('#filterResp').value,cs=$('#filterStatus').value;$('#filterResp').innerHTML='<option value="">Tous les responsables</option>'+[...new Set(orders.map(o=>o.responsable).filter(Boolean))].sort().map(x=>`<option>${esc(x)}</option>`).join('');$('#filterStatus').innerHTML='<option value="">Tous les statuts</option>'+Object.entries(STATUSES).map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');$('#filterResp').value=cr;$('#filterStatus').value=cs}
-function renderLegend(){$('#legend').innerHTML=Object.keys(STATUSES).map(statusHtml).join('')}
-function renderKPIs(){const a=filtered();$('#kpiTodo').textContent=a.filter(o=>o.status==='todo').length;$('#kpiOrdered').textContent=a.filter(o=>o.status==='ordered').length;$('#kpiReceived').textContent=a.filter(o=>o.status==='received').length;$('#kpiProblem').textContent=a.filter(o=>o.status==='problem').length}
-function renderPriority(){const rank={problem:0,todo:1,choice:2,ordered:3,received:9};const a=filtered().filter(o=>o.status!=='received').sort((x,y)=>rank[x.status]-rank[y.status]||String(x.date).localeCompare(String(y.date))).slice(0,6);$('#priorityList').innerHTML=a.length?a.map(o=>`<div class="action"><div class="name">${esc(o.chantier)}</div><div class="desc">${esc(o.produit)}</div><div>${statusHtml(o.status)}</div></div>`).join(''):'<div class="empty">Aucune action prioritaire.</div>'}
-function chantierData(){
-  const m=new Map();
-  filtered().forEach(o=>{
-    if(!m.has(o.chantier))m.set(o.chantier,{chantier:o.chantier,responsable:o.responsable,all:0,received:0,problem:0,todo:0,choice:0});
-    const x=m.get(o.chantier);x.all++;if(o.responsable)x.responsable=o.responsable;
-    if(o.status==='received')x.received++;if(o.status==='problem')x.problem++;if(o.status==='todo')x.todo++;if(o.status==='choice')x.choice++;
-  });
-  const rank=x=>x.problem?0:x.todo?1:x.choice?2:x.received<x.all?3:4;
-  return [...m.values()].sort((a,b)=>rank(a)-rank(b)||String(a.chantier).localeCompare(String(b.chantier),'fr',{sensitivity:'base'}));
-}
-function chantierRows(){return chantierData().map(x=>{const pct=x.all?Math.round(x.received/x.all*100):0;let al='Aucune',cl='ok';if(x.problem){al=`${x.problem} problème${x.problem>1?'s':''}`;cl=''}else if(x.todo){al=`${x.todo} à commander`;cl=''}else if(x.choice){al=`${x.choice} choix client`;cl='orange'}return `<tr><td><button class="chantier-link chantier-open-name" data-chantier-name="${esc(x.chantier)}">${esc(x.chantier)}</button></td><td>${esc(x.responsable||'—')}</td><td><span class="progress ${pct===100?'ok':''}"><span style="width:${pct}%"></span></span>${x.received} / ${x.all} reçues</td><td><span class="pill ${cl}">${al}</span></td></tr>`}).join('')}
-function renderChantiers(){const rows=chantierRows()||'<tr><td colspan="4">Aucun chantier</td></tr>';const a=$('#chantierSummary');if(a)a.innerHTML=rows;$('#chantierSummary2').innerHTML=rows;$$('.chantier-open-name').forEach(b=>b.onclick=()=>openChantierFicheByName(b.dataset.chantierName))}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const normName=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().replace(/\s+/g,' ').toUpperCase();
+const loadCache=()=>{try{const c=JSON.parse(localStorage.getItem('ab-commandes-cache-v1')||'{}');if(Array.isArray(c.orders))orders=c.orders;if(Array.isArray(c.documents))documents=c.documents}catch(e){}};
+const saveCache=()=>{try{localStorage.setItem('ab-commandes-cache-v1',JSON.stringify({orders,documents,ts:Date.now()}))}catch(e){}};
+async function api(params={}){const url=new URL(API);Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(!j.ok)throw new Error(j.error||'Erreur serveur');return j}
+async function post(payload){const r=await fetch(API,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(!j.ok)throw new Error(j.error||'Erreur serveur');return j}
+function showSaving(v){$('#saving').classList.toggle('show',v)}
+function setSync(ok,msg){$('#syncDot').className='dot-sync '+(ok?'ok':'err');$('#syncTitle').textContent=ok?'Sheet connecté':'Mode local';$('#lastSave').textContent=msg||new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}
+async function loadAll(silent=false){try{const j=await api({action:'list'});orders=j.orders||[];documents=j.documents||[];saveCache();setSync(true,'Mis à jour '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}));renderAll()}catch(e){if(!silent){setSync(false,'Données locales');renderAll()}}}
+async function loadYaya(){try{const r=await fetch(YAYA_API+'?action=export_chantiers');const j=await r.json();const raw=j.chantiers||j.data||j.items||[];yayaChantiers=raw.map(c=>({id:String(c.id||c.chantier_id||c.uuid||''),nom:String(c.nom||c.name||c.chantier||'').trim(),statut:String(c.statut||c.status||'')})).filter(c=>c.id&&c.nom)}catch(e){yayaChantiers=[]}}
+function filtered(){const q=$('#search').value.trim().toLowerCase(),resp=$('#filterResp').value,st=$('#filterStatus').value;return orders.filter(o=>(!q||[o.chantier,o.produit,o.fournisseur,o.responsable].join(' ').toLowerCase().includes(q))&&(!resp||o.responsable===resp)&&(!st||o.status===st))}
 function docCount(id){return documents.filter(d=>String(d.commande_id)===String(id)).length}
-function showView(id){$$('.view').forEach(v=>v.classList.remove('active'));const v=$('#'+id);if(v)v.classList.add('active')}
-function matchingOrdersForChantier(chantierId,chantierName){const id=String(chantierId||''),name=normName(chantierName);return orders.filter(o=>(id&&String(o.chantierId||'')===id)||(!id&&name&&normName(o.chantier)===name)||(id&&name&&normName(o.chantier)===name))}
-/* AB_COMMANDES_OVERVIEW_DEDUPE_V1 */
-function overviewNameClean(v){return String(v||'').replace(/^[\s•·▪◦\-–—]+/,'').trim()}
-function overviewNameKey(v){return normName(overviewNameClean(v)).replace(/[^A-Z0-9]+/g,' ').trim()}
-function overviewChantierList(){
-  const byName=new Map();
-  activeYayaChantiers().forEach(c=>{
-    const name=overviewNameClean(c.nom),key=overviewNameKey(name),id=String(c.id||'');
-    if(!key||key.replace(/\s+/g,'')==='ABRENOV35')return;
-    const prev=byName.get(key);
-    if(!prev)byName.set(key,{id,name});
-    else if(!prev.id&&id)prev.id=id;
-  });
-  orders.forEach(o=>{
-    const name=overviewNameClean(o.chantier),key=overviewNameKey(name),id=String(o.chantierId||'');
-    if(!key||key.replace(/\s+/g,'')==='ABRENOV35')return;
-    const prev=byName.get(key);
-    if(!prev)byName.set(key,{id,name});
-    else if(!prev.id&&id)prev.id=id;
-  });
-  const q=$('#search').value.trim().toLowerCase(),resp=$('#filterResp').value,st=$('#filterStatus').value;
-  return [...byName.values()].filter(c=>{
-    const os=matchingOrdersForChantier(c.id,c.name);
-    const searchOk=!q||c.name.toLowerCase().includes(q)||os.some(o=>[o.produit,o.fournisseur,o.responsable].join(' ').toLowerCase().includes(q));
-    const respOk=!resp||os.some(o=>o.responsable===resp);
-    const statusOk=!st||os.some(o=>o.status===st);
-    return searchOk&&respOk&&statusOk;
-  }).sort((a,b)=>a.name.localeCompare(b.name,'fr',{sensitivity:'base'}));
-}
-function renderOverviewChantiers(){
-  const body=$('#overviewChantiers');if(!body)return;
-  const list=overviewChantierList();
-  body.innerHTML=list.length?list.map(c=>{const os=matchingOrdersForChantier(c.id,c.name);const suivi=os.length?`${os.length} produit${os.length>1?'s':''} suivi${os.length>1?'s':''}`:'Aucune commande';return `<tr><td><button class="chantier-link chantier-open" data-chantier-id="${esc(c.id)}" data-chantier-name="${esc(c.name)}">${esc(c.name)}</button></td><td>${suivi}</td><td><button class="btn secondary chantier-open" data-chantier-id="${esc(c.id)}" data-chantier-name="${esc(c.name)}">Ouvrir la fiche</button></td></tr>`}).join(''):'<tr><td colspan="3">Aucun chantier</td></tr>';
-  $$('.chantier-open').forEach(b=>b.onclick=()=>openChantierFiche(b.dataset.chantierId,b.dataset.chantierName));
-}
-function openChantierFicheByName(name){const y=yayaChantiers.find(c=>normName(c.nom)===normName(name));openChantierFiche(y?.id||'',y?.nom||name)}
-function openChantierFiche(id,name){selectedChantierId=String(id||'');selectedChantierName=String(name||'').trim();$$('.nav button').forEach(x=>x.classList.remove('active'));const n=$('.nav button[data-view="chantiers"]');if(n)n.classList.add('active');showView('chantierFiche');renderChantierFiche();window.scrollTo({top:0,behavior:'smooth'})}
-function closeChantierFiche(){showView('overview');$$('.nav button').forEach(x=>x.classList.remove('active'));const n=$('.nav button[data-view="overview"]');if(n)n.classList.add('active');window.scrollTo({top:0,behavior:'smooth'})}
-function renderChantierFiche(){
-  const list=$('#ficheOrdersList');if(!list||!selectedChantierName&&!selectedChantierId)return;
-  const yc=yayaChantiers.find(c=>String(c.id)===String(selectedChantierId));const name=String(yc?.nom||selectedChantierName||'Chantier');selectedChantierName=name;
-  const a=matchingOrdersForChantier(selectedChantierId,name);
-  $('#ficheChantierTitle').textContent=name;$('#ficheChantierSub').textContent=a.length?`${a.length} produit${a.length>1?'s':''} suivi${a.length>1?'s':''}`:'Aucune commande enregistrée';
-  $('#ficheKpiTodo').textContent=a.filter(o=>o.status==='todo').length;$('#ficheKpiOrdered').textContent=a.filter(o=>o.status==='ordered').length;$('#ficheKpiReceived').textContent=a.filter(o=>o.status==='received').length;$('#ficheKpiProblem').textContent=a.filter(o=>o.status==='problem').length;
-  if(!a.length){list.innerHTML='<div class="empty">Aucun produit à suivre pour ce chantier.</div>';return}
-  list.innerHTML=a.map(o=>{const n=docCount(o.id);return `<div class="order-row" data-fiche-id="${esc(o.id)}"><div data-label="Produit"><b>${esc(o.produit)}</b>${o.notes?`<br><span class="small">${esc(o.notes)}</span>`:''}</div><div data-label="Quantité">${esc(o.qte||'—')}</div><div data-label="Fournisseur">${esc(o.fournisseur||'—')}</div><div data-label="Responsable">${esc(o.responsable||'—')}</div><div data-label="Statut"><select class="status-select fiche-status" data-fiche-status-id="${esc(o.id)}">${Object.entries(STATUSES).map(([k,s])=>`<option value="${k}" ${o.status===k?'selected':''}>${s.label}</option>`).join('')}</select></div><div data-label="PDF"><button class="doc-btn ${n?'has':''}" data-fiche-doc-id="${esc(o.id)}">📄 ${n||''}</button></div><div><button class="icon-btn fiche-edit" title="Modifier">✎</button><button class="icon-btn fiche-del" title="Supprimer">×</button></div></div>`}).join('');
-  $$('[data-fiche-status-id]').forEach(el=>el.onchange=async()=>{const o=orders.find(x=>x.id===el.dataset.ficheStatusId);if(!o)return;if((el.value==='ordered'||el.value==='received')&&!String(o.fournisseur||'').trim()){alert('Renseigne d’abord le fournisseur.');el.value=o.status;return}await saveOrder({...o,status:el.value})});
-  $$('[data-fiche-doc-id]').forEach(b=>b.onclick=()=>openDocs(b.dataset.ficheDocId));
-  $$('.fiche-edit').forEach(b=>b.onclick=()=>openModal(b.closest('.order-row').dataset.ficheId));
-  $$('.fiche-del').forEach(b=>b.onclick=async()=>{const id=b.closest('.order-row').dataset.ficheId;if(confirm('Supprimer cette ligne ?'))await deleteOrder(id)});
-}
-function addProductForCurrentChantier(){presetChantierId=selectedChantierId;openModal()}
-
-function renderOrders(){const a=filtered(),list=$('#ordersList');if(!a.length){list.innerHTML='<div class="empty">Aucun produit à afficher.</div>';return}list.innerHTML=a.map(o=>{const n=docCount(o.id);return `<div class="order-row" data-id="${esc(o.id)}"><div data-label="Produit"><b>${esc(o.chantier)}</b><br><span class="small">${esc(o.produit)}</span></div><div data-label="Quantité">${esc(o.qte||'—')}</div><div data-label="Fournisseur">${esc(o.fournisseur||'—')}</div><div data-label="Responsable">${esc(o.responsable||'—')}</div><div data-label="Statut"><select class="status-select" data-status-id="${esc(o.id)}">${Object.entries(STATUSES).map(([k,s])=>`<option value="${k}" ${o.status===k?'selected':''}>${s.label}</option>`).join('')}</select></div><div data-label="PDF"><button class="doc-btn ${n?'has':''}" data-doc-id="${esc(o.id)}">📄 ${n||''}</button></div><div><button class="icon-btn edit" title="Modifier">✎</button><button class="icon-btn del" title="Supprimer">×</button></div></div>`}).join('');$$('[data-status-id]').forEach(el=>el.onchange=async()=>{const o=orders.find(x=>x.id===el.dataset.statusId);if(!o)return;if((el.value==='ordered'||el.value==='received')&&!String(o.fournisseur||'').trim()){alert('Renseigne d’abord le fournisseur.');el.value=o.status;return}await saveOrder({...o,status:el.value})});$$('[data-doc-id]').forEach(b=>b.onclick=()=>openDocs(b.dataset.docId));$$('.edit').forEach(b=>b.onclick=()=>openModal(b.closest('.order-row').dataset.id));$$('.del').forEach(b=>b.onclick=async()=>{const id=b.closest('.order-row').dataset.id;if(confirm('Supprimer cette ligne ?'))await deleteOrder(id)})}
-function renderSuppliers(){const m=new Map();orders.forEach(o=>{const f=o.fournisseur||'Non défini';if(!m.has(f))m.set(f,[]);m.get(f).push(o)});$('#supplierList').innerHTML=[...m.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([f,a])=>`<div class="card panel"><h2>${esc(f)}</h2><div class="small">${a.length} ligne${a.length>1?'s':''} · ${a.filter(x=>x.status==='todo').length} à commander · ${a.filter(x=>x.status==='ordered').length} commandée${a.filter(x=>x.status==='ordered').length>1?'s':''}</div></div>`).join('')||'<div class="empty">Aucun fournisseur.</div>'}
-function renderAll(){refreshFilters();renderOverviewChantiers();renderChantiers();renderOrders();renderSuppliers();renderChantierFiche()}
-async function openModal(id=null){editId=id;const o=id?orders.find(x=>x.id===id):null;$('#modalTitle').textContent=o?'Modifier le produit':'Ajouter un produit';if(!yayaChantiers.length)hydrateYayaCache();if(!yayaChantiers.length)await loadYayaChantiers(true);const yc=findYayaForOrder(o);const preset=!o&&presetChantierId?presetChantierId:'';refreshChantierSelect(yc?.id||o?.chantierId||preset,o?.chantier||'');if(!o)$('#fChantier').value=preset;presetChantierId='';$('#fProduit').value=o?.produit||'';$('#fQte').value=o?.qte||'';$('#fFournisseur').value=o?.fournisseur||'';$('#fResp').value=o?.responsable||'';$('#fStatus').innerHTML=Object.entries(STATUSES).map(([k,s])=>`<option value="${k}">${s.label}</option>`).join('');$('#fStatus').value=o?.status||'choice';$('#fNotes').value=o?.notes||'';$('#modal').classList.add('show')}
-function closeModal(){$('#modal').classList.remove('show');editId=null}
-async function submit(){const old=editId?orders.find(x=>x.id===editId):{};const chantierId=$('#fChantier').value;const yc=yayaChantiers.find(c=>String(c.id)===String(chantierId));const chantier=yc?String(yc.nom||'').trim():String(old?.chantier||'').trim();const status=$('#fStatus').value;const fournisseur=$('#fFournisseur').value.trim();const data={...old,id:editId||uid(),chantierId,chantier,produit:$('#fProduit').value.trim(),qte:$('#fQte').value.trim(),fournisseur,responsable:$('#fResp').value,status,notes:$('#fNotes').value.trim()};if(!data.chantierId||!data.chantier||!data.produit){alert('Choisis un chantier Yaya et indique le produit.');return}if((status==='ordered'||status==='received')&&!fournisseur){alert('Le fournisseur est nécessaire quand la commande est commandée ou reçue.');return}closeModal();await saveOrder(data)}
-function openDocs(orderId){currentDocOrderId=orderId;const o=orders.find(x=>x.id===orderId);$('#docTitle').textContent='Documents · '+(o?o.chantier+' · '+o.produit:'');$('#dName').value='';$('#dUrl').value='';$('#dDate').value='';$('#docModal').classList.add('show');renderDocList()}
-function closeDocs(){$('#docModal').classList.remove('show');currentDocOrderId=null}
-function renderDocList(){if(!currentDocOrderId)return;const a=documents.filter(d=>String(d.commande_id)===String(currentDocOrderId));$('#docList').innerHTML=a.length?a.map(d=>`<div class="doc-item"><div><a href="${esc(d.url_pdf)}" target="_blank" rel="noopener">📄 ${esc(d.nom_fichier||d.type||'PDF')}</a><div class="small">${esc(d.type||'')} · ${esc(d.source||'')}</div></div><a class="btn secondary" href="${esc(d.url_pdf)}" target="_blank" rel="noopener">Voir</a><button class="btn red doc-del" data-id="${esc(d.id)}">×</button></div>`).join(''):'<div class="empty">Aucun PDF lié à cette commande.</div>';$$('.doc-del').forEach(b=>b.onclick=async()=>{if(confirm('Supprimer ce lien PDF ?'))await deleteDocument(b.dataset.id)})}
-async function addDoc(){const o=orders.find(x=>x.id===currentDocOrderId);const url=$('#dUrl').value.trim();if(!url){alert('Ajoute l’URL du PDF.');return}const doc={id:uid(),commande_id:currentDocOrderId,chantier:o?.chantier||'',type:$('#dType').value,nom_fichier:$('#dName').value.trim()||$('#dType').value,url_pdf:url,source:$('#dSource').value,date_document:$('#dDate').value,auteur:''};$('#dName').value='';$('#dUrl').value='';$('#dDate').value='';await saveDocument(doc)}
+function row(o){const s=STATUSES[o.status]||STATUSES.choice;const n=docCount(o.id);return `<div class="order-row" data-id="${esc(o.id)}"><div data-label="Produit / besoin"><b>${esc(o.produit)}</b><div class="small">${esc(o.chantier)}</div></div><div data-label="Qté">${esc(o.qte||'—')}</div><div data-label="Fournisseur">${esc(o.fournisseur||'—')}</div><div data-label="Responsable">${esc(o.responsable||'—')}</div><div data-label="Statut"><select class="status-select">${Object.entries(STATUSES).map(([k,v])=>`<option value="${k}" ${k===o.status?'selected':''}>${v.label}</option>`).join('')}</select></div><div data-label="PDF"><button class="doc-btn ${n?'has':''}">📄 ${n||''}</button></div><div><button class="icon-btn edit">✎</button><button class="icon-btn del">×</button></div></div>`}
+function bindRows(root){root.querySelectorAll('.order-row[data-id]').forEach(r=>{const id=r.dataset.id,o=orders.find(x=>String(x.id)===id);r.querySelector('.status-select').onchange=async e=>{if((e.target.value==='ordered'||e.target.value==='received')&&!o.fournisseur){alert('Renseigne d’abord le fournisseur.');e.target.value=o.status;return}o.status=e.target.value;await saveOrder(o)};r.querySelector('.edit').onclick=()=>openModal(id);r.querySelector('.del').onclick=()=>deleteOrder(id);r.querySelector('.doc-btn').onclick=()=>openDocs(id)})}
+function renderOrders(){const list=$('#ordersList');list.innerHTML=filtered().map(row).join('')||'<div class="empty">Aucune commande.</div>';bindRows(list)}
+function uniqueChantiers(){const map=new Map();orders.forEach(o=>{if(!map.has(o.chantier))map.set(o.chantier,{name:o.chantier,total:0,received:0,problem:0,resps:new Set(),id:o.chantierId||''});const g=map.get(o.chantier);g.total++;if(o.status==='received')g.received++;if(o.status==='problem')g.problem++;if(o.responsable)g.resps.add(o.responsable);if(!g.id&&o.chantierId)g.id=o.chantierId});return [...map.values()]}
+function chantierLink(g){return `<button class="chantier-link" data-id="${esc(g.id||'')}" data-name="${esc(g.name)}">${esc(g.name)}</button>`}
+function renderChantiers(){const groups=uniqueChantiers();$('#chantierSummary2').innerHTML=groups.map(g=>`<tr><td>${esc(g.name)}</td><td>${esc([...g.resps].join(', ')||'—')}</td><td>${g.received}/${g.total} reçus</td><td>${g.problem?'<span class="pill">'+g.problem+' alerte(s)</span>':'<span class="pill ok">OK</span>'}</td></tr>`).join('')||'<tr><td colspan="4">Aucun chantier.</td></tr>';$('#overviewChantiers').innerHTML=groups.map(g=>`<tr><td>${chantierLink(g)}</td><td><span class="progress ${g.received===g.total?'ok':''}"><span style="width:${g.total?Math.round(g.received/g.total*100):0}%"></span></span>${g.received}/${g.total}</td><td>${g.problem?'<span class="pill">'+g.problem+' alerte(s)</span>':'<span class="pill ok">Sécurisé</span>'}</td></tr>`).join('')||'<tr><td colspan="3">Aucun chantier.</td></tr>';$('#overviewChantiers').querySelectorAll('.chantier-link').forEach(b=>b.onclick=()=>openChantierFiche(b.dataset.id,b.dataset.name))}
+function renderFilters(){const curR=$('#filterResp').value,curS=$('#filterStatus').value;const rs=[...new Set(orders.map(o=>o.responsable).filter(Boolean))].sort();$('#filterResp').innerHTML='<option value="">Tous les responsables</option>'+rs.map(r=>`<option>${esc(r)}</option>`).join('');$('#filterResp').value=curR;$('#filterStatus').innerHTML='<option value="">Tous les statuts</option>'+Object.entries(STATUSES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');$('#filterStatus').value=curS}
+function renderKpis(){const ks=['todo','ordered','received','problem'];ks.forEach(k=>{const el=document.querySelector('[data-kpi="'+k+'"]');if(el)el.textContent=orders.filter(o=>o.status===k).length})}
+function renderAll(){renderFilters();renderOrders();renderChantiers();renderKpis();if(selectedChantierName)renderChantierFiche()}
+function matchingOrdersForChantier(id,name){const key=normName(name);return orders.filter(o=>(id&&String(o.chantierId||'')===String(id))||normName(o.chantier)===key)}
+function renderChantierFiche(){const list=$('#ficheOrdersList'),a=matchingOrdersForChantier(selectedChantierId,selectedChantierName);$('#ficheChantierTitle').textContent=selectedChantierName||'Fiche chantier';$('#ficheChantierSub').textContent=a.length?`${a.length} produit(s) suivi(s)`:'Aucune commande enregistrée';$('#ficheKpiTodo').textContent=a.filter(o=>o.status==='todo').length;$('#ficheKpiOrdered').textContent=a.filter(o=>o.status==='ordered').length;$('#ficheKpiReceived').textContent=a.filter(o=>o.status==='received').length;$('#ficheKpiProblem').textContent=a.filter(o=>o.status==='problem').length;list.innerHTML=a.map(row).join('')||'<div class="empty">Aucune commande pour ce chantier.</div>';bindRows(list)}
+async function openChantierFiche(id,name){selectedChantierId=id||'';selectedChantierName=name||'';await ensureYayaChantierAvailable(selectedChantierId,selectedChantierName);$$('.view').forEach(v=>v.classList.remove('active'));$('#chantierFiche').classList.add('active');renderChantierFiche();window.scrollTo({top:0,behavior:'smooth'})}
+function closeChantierFiche(){$$('.view').forEach(v=>v.classList.remove('active'));$('#overview').classList.add('active');$$('.nav button').forEach(b=>b.classList.remove('active'));$('.nav button[data-view="overview"]').classList.add('active');selectedChantierId=null;selectedChantierName='';window.scrollTo({top:0,behavior:'smooth'})}
+async function ensureYayaChantierAvailable(id,name){if(!id)return;let opt=$('#fChantier').querySelector(`option[value="${CSS.escape(String(id))}"]`);if(opt)return;await loadYaya();refreshChantierSelect(id,name)}
+function refreshChantierSelect(forceId='',forceName=''){const sel=$('#fChantier');const map=new Map();yayaChantiers.forEach(c=>map.set(c.id,c));orders.forEach(o=>{if(o.chantierId&&!map.has(String(o.chantierId)))map.set(String(o.chantierId),{id:String(o.chantierId),nom:o.chantier||o.chantierId,statut:''})});if(forceId&&!map.has(String(forceId)))map.set(String(forceId),{id:String(forceId),nom:forceName||forceId,statut:''});sel.innerHTML='<option value="">Sélectionner un chantier</option>'+[...map.values()].sort((a,b)=>a.nom.localeCompare(b.nom,'fr',{sensitivity:'base'})).map(c=>`<option value="${esc(c.id)}">${esc(c.nom)}</option>`).join('');if(forceId)sel.value=String(forceId)}
+async function openModal(id=null){editId=id;const o=orders.find(x=>String(x.id)===String(id));$('#modalTitle').textContent=o?'Modifier la commande':'Ajouter une commande';refreshChantierSelect(o?.chantierId||presetChantierId,o?.chantier||selectedChantierName);$('#fChantier').value=o?.chantierId||presetChantierId||'';$('#fProduit').value=o?.produit||'';$('#fQte').value=o?.qte||'';$('#fFournisseur').value=o?.fournisseur||'';$('#fResp').value=o?.responsable||'Solenn';$('#fStatus').innerHTML=Object.entries(STATUSES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');$('#fStatus').value=o?.status||'todo';$('#fNotes').value=o?.notes||'';$('#modal').classList.add('show')}
+function closeModal(){$('#modal').classList.remove('show');editId=null;presetChantierId=''}
+async function submit(){const chantierId=$('#fChantier').value,chantier=yayaChantiers.find(c=>c.id===chantierId)?.nom||orders.find(o=>String(o.chantierId)===String(chantierId))?.chantier||selectedChantierName||'';if(!chantierId||!chantier||!$('#fProduit').value.trim()){alert('Chantier et produit obligatoires.');return}const o={id:editId||('CMD-'+Date.now()),chantierId,chantier,produit:$('#fProduit').value.trim(),qte:$('#fQte').value.trim(),fournisseur:$('#fFournisseur').value.trim(),responsable:$('#fResp').value,status:$('#fStatus').value,notes:$('#fNotes').value.trim()};if((o.status==='ordered'||o.status==='received')&&!o.fournisseur){alert('Le fournisseur est obligatoire pour Commandé ou Reçu.');return}showSaving(true);try{await saveOrder(o);closeModal()}finally{showSaving(false)}}
+async function saveOrder(o){await post({action:'save_order',order:o});const i=orders.findIndex(x=>String(x.id)===String(o.id));if(i>=0)orders[i]=o;else orders.push(o);saveCache();renderAll()}
+async function deleteOrder(id){if(!confirm('Supprimer cette commande ?'))return;showSaving(true);try{await post({action:'delete_order',id});orders=orders.filter(o=>String(o.id)!==String(id));documents=documents.filter(d=>String(d.commande_id)!==String(id));saveCache();renderAll()}finally{showSaving(false)}}
+function openDocs(id){currentDocOrder=id;renderDocList();$('#docDate').value=new Date().toISOString().slice(0,10);$('#docModal').classList.add('show')}
+function closeDocs(){$('#docModal').classList.remove('show');currentDocOrder=null}
+function renderDocList(){const a=documents.filter(d=>String(d.commande_id)===String(currentDocOrder));$('#docList').innerHTML=a.map(d=>`<div class="doc-item"><a href="${esc(d.url_pdf)}" target="_blank">${esc(d.type)} · ${esc(d.nom_fichier||'Document')}</a><span class="small">${esc(d.date)}</span><button class="icon-btn" onclick="deleteDocument('${esc(d.id)}')">×</button></div>`).join('')||'<div class="small">Aucun document.</div>'}
+async function addDoc(){const file={id:'DOC-'+Date.now(),commande_id:currentDocOrder,type:$('#docType').value,date:$('#docDate').value,nom_fichier:$('#docName').value.trim(),url_pdf:$('#docUrl').value.trim()};if(!file.nom_fichier&&!file.url_pdf){alert('Nom ou lien obligatoire.');return}showSaving(true);try{await post({action:'document_save',document:file});documents.push(file);saveCache();renderDocList();renderAll();$('#docName').value='';$('#docUrl').value=''}finally{showSaving(false)}}
+async function deleteDocument(id){showSaving(true);try{await post({action:'document_delete',id});await new Promise(r=>setTimeout(r,500));await loadAll(true);renderDocList()}finally{showSaving(false)}}
+function addProductForCurrentChantier(){presetChantierId=selectedChantierId||'';openModal()}
+async function tryOpenDeepLink(){const p=new URLSearchParams(location.search),id=p.get('chantierId'),name=p.get('chantierName');if(id||name){await openChantierFiche(id||'',name||'Chantier')}}
+loadCache();renderAll();Promise.allSettled([loadAll(),loadYaya()]).then(()=>{refreshChantierSelect();tryOpenDeepLink()});
 $$('.nav button').forEach(b=>b.onclick=()=>{$$('.nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');$$('.view').forEach(v=>v.classList.remove('active'));$('#'+b.dataset.view).classList.add('active')});
 $('#addBtn').onclick=()=>openModal();$('#addBtnTop').onclick=()=>openModal();$('#ficheBackBtn').onclick=closeChantierFiche;$('#ficheAddBtn').onclick=addProductForCurrentChantier;$('#cancelBtn').onclick=closeModal;$('#saveBtn').onclick=submit;$('#modal').onclick=e=>{if(e.target===$('#modal'))closeModal()};$('#closeDocBtn').onclick=closeDocs;$('#addDocBtn').onclick=addDoc;$('#docModal').onclick=e=>{if(e.target===$('#docModal'))closeDocs()};$('#search').oninput=renderAll;$('#filterResp').onchange=renderAll;$('#filterStatus').onchange=renderAll;
 renderAll();hydrateYayaCache();tryOpenDeepLink();
@@ -338,6 +171,6 @@ renderAll();hydrateYayaCache();tryOpenDeepLink();
 <script src="document-preview-height-restore-v841.js?v=841"></script>
 <script src="document-delete-v85.js?v=85"></script>
 <script src="document-delete-modal-v86.js?v=86"></script>
-<script src="document-preview-fit-v88.js?v=88"></script>
+<script src="document-preview-fit-v88.js?v=89"></script>
 </body>
 </html>
