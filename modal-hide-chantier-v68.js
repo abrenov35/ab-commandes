@@ -1,5 +1,6 @@
 (function(){
   'use strict';
+  // V68 : masquer le chantier dans toutes les modales de la fiche chantier.
   const id='ab-commandes-hide-chantier-v68';
   if(!document.getElementById(id)){
     const s=document.createElement('style');
