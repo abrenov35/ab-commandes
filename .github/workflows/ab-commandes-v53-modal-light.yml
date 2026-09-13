@@ -1,0 +1,40 @@
+name: AB COMMANDES V53 modal light
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-modal-light:
+    if: github.event.head_commit.message == 'AB COMMANDES V53 - publier allègement modale'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Charger V53 dans index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="modal-light-v53.js?v=53"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit index
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "AB COMMANDES V53 - activer allègement modale"
+          git push
