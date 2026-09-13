@@ -1,0 +1,61 @@
+name: AB COMMANDES - version visible dans Yaya
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  sync-version:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lire la version du commit
+        id: version
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          python - <<'PY'
+          import json, os, re
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          msg = os.environ.get('COMMIT_MESSAGE','')
+          m = re.search(r'\bV(\d+(?:\.\d+)?)\b', msg)
+          if not m:
+              print('Aucune version Vxx dans le commit : rien à publier.')
+              raise SystemExit(0)
+
+          version = m.group(1)
+          p = Path('version.json')
+          data = {'app':'AB COMMANDES'}
+          if p.exists():
+              try:
+                  data.update(json.loads(p.read_text(encoding='utf-8')))
+              except Exception:
+                  pass
+
+          if str(data.get('version','')) == version:
+              print('Version déjà à jour :', version)
+              raise SystemExit(0)
+
+          data['app'] = 'AB COMMANDES'
+          data['version'] = version
+          data['updated'] = datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00','Z')
+          p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          print('Version publiée :', version)
+          PY
+      - name: Publier la version
+        run: |
+          if git diff --quiet -- version.json; then
+            echo 'Aucun changement de version.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add version.json
+          git commit -m 'Mettre à jour la version visible AB COMMANDES'
+          git push
