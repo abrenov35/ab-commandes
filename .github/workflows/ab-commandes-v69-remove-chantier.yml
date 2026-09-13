@@ -1,0 +1,33 @@
+name: AB COMMANDES V69 supprimer chantier modales
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'AB COMMANDES V69 - supprimer chantier modales'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Charger V69 en dernier
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="modal-remove-chantier-v69.js?v=69"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "AB COMMANDES V69 - publier suppression chantier modales"
+            git push
+          fi
