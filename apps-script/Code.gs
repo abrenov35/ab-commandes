@@ -5,9 +5,8 @@ const DRIVE_ROOT_FOLDER = 'AB COMMANDES';
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 /*
- * V28 : schéma non destructif.
- * Les colonnes déjà présentes dans le Sheet sont conservées telles quelles.
- * Les champs manquants sont ajoutés à droite au lieu de réécrire la ligne d'en-tête.
+ * V43 : upload document idempotent + journal d'erreur exploitable.
+ * Le schéma reste non destructif : les colonnes existantes sont conservées.
  */
 const COMMAND_FIELDS = [
   'id','chantier','produit','qte','fournisseur','responsable','date','start','status',
@@ -39,25 +38,28 @@ function doGet(e) {
       data = {
         ok: true,
         service: 'AB COMMANDES',
-        version: '28.1',
+        version: '43.0',
         time: new Date().toISOString(),
-        capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read']
+        capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read','idempotent_upload','error_log']
       };
     } else {
       data = { ok: false, error: 'Action inconnue' };
     }
     return output_(data, e);
   } catch (err) {
+    logError_('doGet', e && e.parameter ? e.parameter : {}, err);
     return output_({ ok: false, error: errorMessage_(err) }, e);
   }
 }
 
 function doPost(e) {
+  let data = {};
+  let action = 'inconnue';
   try {
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ctx = ensureSheets_(ss);
-    const data = parseRequest_(e);
-    const action = String(data.action || 'upsert');
+    data = parseRequest_(e);
+    action = String(data.action || 'upsert');
 
     if (action === 'upsert') {
       const obj = normalizeCommande_(data);
@@ -77,8 +79,23 @@ function doPost(e) {
     }
 
     if (action === 'document_upload') {
+      const requestedId = String(data.id || '').trim();
+      if (!requestedId) throw new Error('ID document manquant');
+
+      const existing = findObjectById_(ctx.documents, requestedId);
+      if (existing) {
+        return json_({ ok: true, document: existing, duplicate_avoided: true });
+      }
+
       const doc = uploadDocument_(data);
-      upsertObject_(ctx.documents, doc);
+      try {
+        upsertObject_(ctx.documents, doc);
+      } catch (writeErr) {
+        if (doc && doc.drive_file_id) {
+          try { DriveApp.getFileById(String(doc.drive_file_id)).setTrashed(true); } catch (_) {}
+        }
+        throw writeErr;
+      }
       return json_({ ok: true, document: doc });
     }
 
@@ -94,6 +111,7 @@ function doPost(e) {
 
     return json_({ ok: false, error: 'Action inconnue' });
   } catch (err) {
+    logError_('doPost:' + action, data, err);
     return json_({ ok: false, error: errorMessage_(err) });
   }
 }
@@ -313,6 +331,9 @@ function uploadDocument_(d) {
   const commandeId = String(d.commande_id || '').trim();
   if (!commandeId) throw new Error('Commande manquante');
 
+  const documentId = String(d.id || '').trim();
+  if (!documentId) throw new Error('ID document manquant');
+
   const rawBase64 = String(d.file_base64 || '').replace(/^data:[^;]+;base64,/, '').trim();
   if (!rawBase64) throw new Error('Fichier manquant');
 
@@ -330,10 +351,10 @@ function uploadDocument_(d) {
   const blob = Utilities.newBlob(bytes, mimeType, fileName);
   const file = folder.createFile(blob);
 
-  try { file.setDescription('AB COMMANDES · ' + chantier + ' · commande ' + commandeId); } catch (_) {}
+  try { file.setDescription('AB COMMANDES · doc ' + documentId + ' · ' + chantier + ' · commande ' + commandeId); } catch (_) {}
 
   return normalizeDocument_({
-    id: String(d.id || Utilities.getUuid()),
+    id: documentId,
     commande_id: commandeId,
     chantier: chantier,
     type: String(d.type || 'PDF'),
@@ -381,6 +402,23 @@ function output_(obj, e) {
 
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function logError_(scope, data, err) {
+  try {
+    const safe = {
+      scope: String(scope || ''),
+      action: String(data && data.action || ''),
+      id: String(data && data.id || ''),
+      commande_id: String(data && data.commande_id || ''),
+      chantier: String(data && data.chantier || ''),
+      error: errorMessage_(err),
+      stack: String(err && err.stack || '')
+    };
+    console.error('AB COMMANDES ERROR ' + JSON.stringify(safe));
+  } catch (_) {
+    console.error('AB COMMANDES ERROR ' + errorMessage_(err));
+  }
 }
 
 function errorMessage_(err) {
