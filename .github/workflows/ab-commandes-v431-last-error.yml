@@ -1,0 +1,143 @@
+name: AB COMMANDES V43.1 last_error
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  patch-last-error:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajouter le diagnostic last_error
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('apps-script/Code.gs')
+          s = p.read_text(encoding='utf-8')
+
+          if "const LAST_ERROR_PROPERTY = 'AB_COMMANDES_LAST_ERROR';" not in s:
+              s = s.replace(
+                  "const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;\n",
+                  "const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;\nconst LAST_ERROR_PROPERTY = 'AB_COMMANDES_LAST_ERROR';\n",
+                  1,
+              )
+
+          s = s.replace(
+              " * V43 : upload document idempotent + journal d'erreur exploitable.\n",
+              " * V43.1 : upload document idempotent + diagnostic last_error exploitable.\n",
+              1,
+          )
+
+          new_do_get = '''function doGet(e) {
+            const action = String((e && e.parameter && e.parameter.action) || 'list');
+            try {
+              if (action === 'last_error') {
+                return output_(readLastError_(), e);
+              }
+
+              if (action === 'health') {
+                return output_({
+                  ok: true,
+                  service: 'AB COMMANDES',
+                  version: '43.1',
+                  time: new Date().toISOString(),
+                  capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read','idempotent_upload','error_log','last_error']
+                }, e);
+              }
+
+              const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+              const ctx = ensureSheets_(ss);
+              const id = String((e && e.parameter && e.parameter.id) || '').trim();
+              let data;
+
+              if (action === 'list') {
+                data = { ok: true, commandes: readObjects_(ctx.commandes) };
+              } else if (action === 'documents') {
+                data = { ok: true, documents: readObjects_(ctx.documents) };
+              } else if (action === 'commande') {
+                data = { ok: true, commande: findObjectById_(ctx.commandes, id) };
+              } else if (action === 'document') {
+                data = { ok: true, document: findObjectById_(ctx.documents, id) };
+              } else {
+                data = { ok: false, error: 'Action inconnue' };
+              }
+              return output_(data, e);
+            } catch (err) {
+              logError_('doGet:' + action, e && e.parameter ? e.parameter : {}, err);
+              return output_({ ok: false, error: errorMessage_(err) }, e);
+            }
+          }
+          '''
+
+          start = s.index('function doGet(e) {')
+          end = s.index('\nfunction doPost(e) {', start)
+          s = s[:start] + new_do_get.rstrip() + '\n' + s[end:]
+
+          new_log = '''function logError_(scope, data, err) {
+            try {
+              const safe = {
+                time: new Date().toISOString(),
+                scope: String(scope || ''),
+                action: String(data && data.action || ''),
+                id: String(data && data.id || ''),
+                commande_id: String(data && data.commande_id || ''),
+                chantier: String(data && data.chantier || ''),
+                file_name: String(data && (data.file_name || data.nom_fichier) || ''),
+                mime_type: String(data && data.mime_type || ''),
+                error: errorMessage_(err),
+                stack: String(err && err.stack || '')
+              };
+              try {
+                PropertiesService.getScriptProperties().setProperty(LAST_ERROR_PROPERTY, JSON.stringify(safe));
+              } catch (propertyErr) {
+                safe.property_error = errorMessage_(propertyErr);
+              }
+              console.error('AB COMMANDES ERROR ' + JSON.stringify(safe));
+            } catch (_) {
+              console.error('AB COMMANDES ERROR ' + errorMessage_(err));
+            }
+          }
+
+          function readLastError_() {
+            try {
+              const raw = PropertiesService.getScriptProperties().getProperty(LAST_ERROR_PROPERTY);
+              if (!raw) {
+                return { ok: true, last_error: null, message: 'Aucune erreur enregistrée.' };
+              }
+              try {
+                return { ok: true, last_error: JSON.parse(raw) };
+              } catch (_) {
+                return { ok: true, last_error: { error: String(raw) } };
+              }
+            } catch (err) {
+              return { ok: false, error: errorMessage_(err) };
+            }
+          }
+          '''
+
+          start = s.index('function logError_(scope, data, err) {')
+          end = s.index('\nfunction errorMessage_(err) {', start)
+          s = s[:start] + new_log.rstrip() + '\n' + s[end:]
+
+          p.write_text(s, encoding='utf-8')
+          PY
+          rm -f .github/workflows/ab-commandes-v431-last-error.yml
+      - name: Commit V43.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps-script/Code.gs .github/workflows/ab-commandes-v431-last-error.yml
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "AB COMMANDES V43.1 - ajouter diagnostic last_error"
+          git push
