@@ -2,7 +2,7 @@
   'use strict';
 
   const TYPE='Lien web';
-  const VERSION='33.0';
+  const VERSION='34.0';
   let scheduled=false;
 
   function docs(){return (typeof documents!=='undefined'&&Array.isArray(documents))?documents:[]}
@@ -52,6 +52,8 @@
         line-height:1!important;
         box-shadow:0 1px 2px rgba(25,50,80,.10)!important;
         flex:0 0 auto!important;
+        text-decoration:none!important;
+        cursor:pointer!important;
       }
       .ab-web-link-btn:not([disabled]):hover{background:#dcecff!important;border-color:#4f82b7!important}
       .ab-web-link-btn[disabled]{
@@ -194,7 +196,7 @@
         wrapped.__abWebLinkV31=true;
         docCount=wrapped;
       }
-    }catch(err){console.error('AB COMMANDES V33 docCount',err)}
+    }catch(err){console.error('AB COMMANDES V34 docCount',err)}
   }
 
   function rowId(row){return String(row?.dataset?.id||row?.dataset?.ficheId||'')}
@@ -203,21 +205,29 @@
     const url=webUrl(id);
     const host=row.querySelector('.ab-order-doc')||row.querySelector('[data-label="PDF"]');
     if(!host)return;
-    let btn=host.querySelector('.ab-web-link-btn');
-    if(!btn){
-      btn=document.createElement('button');
-      btn.type='button';
-      btn.className='doc-btn ab-web-link-btn';
-      btn.textContent='🔗';
-      host.appendChild(btn);
+    let node=host.querySelector('.ab-web-link-btn');
+    const wantAnchor=!!url;
+    if(!node||(wantAnchor&&node.tagName!=='A')||(!wantAnchor&&node.tagName!=='BUTTON')){
+      const replacement=document.createElement(wantAnchor?'a':'button');
+      replacement.className='doc-btn ab-web-link-btn';
+      replacement.textContent='🔗';
+      if(node)node.replaceWith(replacement);else host.appendChild(replacement);
+      node=replacement;
     }
-    btn.disabled=!url;
-    btn.title=url?'Ouvrir le lien web dans un nouvel onglet':'Aucun lien web renseigné';
-    btn.onclick=e=>{
-      e.preventDefault();e.stopPropagation();
-      const current=webUrl(id);if(!current)return;
-      window.open(current,'_blank','noopener,noreferrer');
-    };
+    node.className='doc-btn ab-web-link-btn';
+    node.textContent='🔗';
+    node.title=url?'Ouvrir le lien web dans un nouvel onglet':'Aucun lien web renseigné';
+    if(url){
+      node.href=url;
+      node.target='_blank';
+      node.rel='noopener noreferrer';
+      node.removeAttribute('disabled');
+      node.onclick=e=>{e.stopPropagation()};
+    }else{
+      node.type='button';
+      node.disabled=true;
+      node.onclick=null;
+    }
   }
   function addButtons(){
     document.querySelectorAll('#ordersList .order-row[data-id],#ficheOrdersList .order-row[data-id],#ficheOrdersList .order-row[data-fiche-id]').forEach(ensureButton);
@@ -241,7 +251,7 @@
       wrapped.__abWebLinkV31=true;
       openModal=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V33 openModal',err)}
+  }catch(err){console.error('AB COMMANDES V34 openModal',err)}
 
   try{
     if(typeof saveOrder==='function'&&!saveOrder.__abWebLinkV31){
@@ -256,7 +266,7 @@
         if(raw!==null){
           const snapshot={...(obj||{})};
           Promise.resolve().then(()=>syncLink(snapshot,raw)).catch(err=>{
-            console.error('AB COMMANDES V33 synchronisation lien web',err);
+            console.error('AB COMMANDES V34 synchronisation lien web',err);
             try{if(typeof setSync==='function')setSync(false,'Produit enregistré · lien web à resynchroniser')}catch(_){}
           });
         }
@@ -265,7 +275,7 @@
       wrapped.__abWebLinkV31=true;
       saveOrder=wrapped;
     }
-  }catch(err){console.error('AB COMMANDES V33 saveOrder',err)}
+  }catch(err){console.error('AB COMMANDES V34 saveOrder',err)}
 
   ensureField();installDocCount();schedule();
   const observer=new MutationObserver(schedule);
