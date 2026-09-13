@@ -12,12 +12,38 @@
     }catch(e){}
   }
 
+  function removeProblemChoices(root){
+    if(!root)return;
+    root.querySelectorAll('select option[value="problem"]').forEach(option=>option.remove());
+  }
+
+  function forceBlankResponsibleForNew(){
+    try{
+      if(typeof editId!=='undefined'&&editId)return;
+    }catch(e){}
+    const select=document.getElementById('fResp');
+    if(!select)return;
+    let blank=[...select.options].find(o=>String(o.value||'')==='');
+    if(!blank){
+      blank=document.createElement('option');
+      blank.value='';
+      blank.textContent='— Choisir —';
+      select.insertBefore(blank,select.firstChild);
+    }else if(!String(blank.textContent||'').trim()){
+      blank.textContent='— Choisir —';
+    }
+    select.value='';
+    if(select.value!=='')select.selectedIndex=0;
+  }
+
   function patchRenderedLabels(root){
     if(!root)return;
 
     root.querySelectorAll('option[value="choice"]').forEach(option=>{
       option.textContent=NEW;
     });
+
+    removeProblemChoices(root);
 
     root.querySelectorAll('.ab-status-heading').forEach(el=>{
       const value=String(el.textContent||'').trim();
@@ -51,7 +77,17 @@
   wrapRender('renderOrders');
   wrapRender('renderChantierFiche');
   refresh();
+
+  document.addEventListener('ab-commandes-modal-open',()=>{
+    patchRenderedLabels(document);
+    forceBlankResponsibleForNew();
+    setTimeout(()=>{
+      patchRenderedLabels(document);
+      forceBlankResponsibleForNew();
+    },60);
+  });
+
   window.addEventListener('load',refresh,{once:true});
 
-  window.__AB_COMMANDES_CHOICE_CLIENT_LABEL_VERSION='2.0';
+  window.__AB_COMMANDES_CHOICE_CLIENT_LABEL_VERSION='3.0';
 })();
