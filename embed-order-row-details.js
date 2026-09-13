@@ -5,6 +5,7 @@
   if(params.get('embed')!=='1')return;
 
   const STYLE_ID='ab-commandes-order-row-details-style-v3';
+  const CONFIRM_ID='abDeleteProductConfirm';
   let activeEditId='';
   let scheduled=false;
 
@@ -48,6 +49,39 @@
       body.ab-embed-mode #abEditDeleteBtn.ab-visible,
       body.ab-embed-mode #abEditDocBtn.ab-visible{display:inline-flex!important;align-items:center!important;justify-content:center!important}
 
+      #${CONFIRM_ID}{
+        position:fixed!important;inset:0!important;z-index:99999!important;
+        display:none!important;align-items:center!important;justify-content:center!important;
+        padding:18px!important;background:rgba(14,28,48,.42)!important;
+        backdrop-filter:blur(5px)!important;-webkit-backdrop-filter:blur(5px)!important;
+      }
+      #${CONFIRM_ID}.show{display:flex!important}
+      #${CONFIRM_ID} .ab-confirm-card{
+        width:min(430px,calc(100vw - 32px))!important;
+        padding:24px!important;border:1px solid #e4eaf1!important;border-radius:20px!important;
+        background:#fff!important;box-shadow:0 24px 70px rgba(18,38,63,.28)!important;
+        text-align:center!important;
+      }
+      #${CONFIRM_ID} .ab-confirm-icon{
+        width:46px!important;height:46px!important;margin:0 auto 13px!important;border-radius:14px!important;
+        display:grid!important;place-items:center!important;background:#fff1f3!important;color:#c9344f!important;
+        font-size:23px!important;font-weight:900!important;
+      }
+      #${CONFIRM_ID} .ab-confirm-title{
+        margin:0!important;color:#172b49!important;font-size:20px!important;font-weight:900!important;line-height:1.2!important;
+      }
+      #${CONFIRM_ID} .ab-confirm-text{
+        margin:9px 0 20px!important;color:#6f7f95!important;font-size:13px!important;font-weight:600!important;line-height:1.45!important;
+      }
+      #${CONFIRM_ID} .ab-confirm-actions{display:flex!important;justify-content:center!important;gap:10px!important}
+      #${CONFIRM_ID} button{
+        min-width:112px!important;height:42px!important;border-radius:11px!important;padding:0 16px!important;
+        font-size:13px!important;font-weight:850!important;cursor:pointer!important;
+      }
+      #${CONFIRM_ID} .ab-confirm-cancel{border:1px solid #d5dfea!important;background:#fff!important;color:#2d405d!important}
+      #${CONFIRM_ID} .ab-confirm-delete{border:1px solid #e9a9b5!important;background:#fff0f2!important;color:#c72c48!important}
+      #${CONFIRM_ID} .ab-confirm-delete:hover{background:#ffe5e9!important}
+
       @media(max-width:620px){
         body.ab-embed-mode #chantierFiche .fiche-orders .order-row.ab-row-simple{
           grid-template-columns:minmax(130px,1.45fr) minmax(82px,.7fr) minmax(120px,1fr) 52px!important;
@@ -59,9 +93,55 @@
         body.ab-embed-mode #chantierFiche .ab-order-doc .doc-btn{min-width:40px!important;padding:7px 5px!important;font-size:11px!important}
         body.ab-embed-mode #modal .dialog-actions{gap:6px!important}
         body.ab-embed-mode #modal .dialog-actions .btn{padding:7px 9px!important;font-size:11px!important}
+        #${CONFIRM_ID} .ab-confirm-card{padding:21px 17px!important;border-radius:17px!important}
+        #${CONFIRM_ID} .ab-confirm-title{font-size:18px!important}
+        #${CONFIRM_ID} .ab-confirm-actions{gap:8px!important}
+        #${CONFIRM_ID} button{min-width:0!important;flex:1!important}
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function customDeleteConfirm(){
+    let overlay=document.getElementById(CONFIRM_ID);
+    if(!overlay){
+      overlay=document.createElement('div');
+      overlay.id=CONFIRM_ID;
+      overlay.setAttribute('role','dialog');
+      overlay.setAttribute('aria-modal','true');
+      overlay.setAttribute('aria-labelledby','abDeleteConfirmTitle');
+      overlay.innerHTML=`
+        <div class="ab-confirm-card">
+          <div class="ab-confirm-icon">×</div>
+          <h3 id="abDeleteConfirmTitle" class="ab-confirm-title">Supprimer ce produit ?</h3>
+          <p class="ab-confirm-text">Cette action supprimera le produit de la commande.</p>
+          <div class="ab-confirm-actions">
+            <button type="button" class="ab-confirm-cancel">Annuler</button>
+            <button type="button" class="ab-confirm-delete">Supprimer</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+    }
+
+    return new Promise(resolve=>{
+      const cancel=overlay.querySelector('.ab-confirm-cancel');
+      const del=overlay.querySelector('.ab-confirm-delete');
+      let done=false;
+      const finish=value=>{
+        if(done)return;done=true;
+        overlay.classList.remove('show');
+        cancel.onclick=null;del.onclick=null;overlay.onclick=null;
+        document.removeEventListener('keydown',onKey,true);
+        resolve(value);
+      };
+      const onKey=ev=>{if(ev.key==='Escape'){ev.preventDefault();finish(false)}};
+      cancel.onclick=()=>finish(false);
+      del.onclick=()=>finish(true);
+      overlay.onclick=ev=>{if(ev.target===overlay)finish(false)};
+      document.addEventListener('keydown',onKey,true);
+      overlay.classList.add('show');
+      setTimeout(()=>cancel.focus(),0);
+    });
   }
 
   function removeLegacyReadModal(){
@@ -96,7 +176,7 @@
     del.onclick=async()=>{
       const id=String(activeEditId||'');
       if(!id||!getOrder(id))return;
-      if(!confirm('Supprimer ce produit ?'))return;
+      if(!await customDeleteConfirm())return;
       try{
         if(typeof closeModal==='function')closeModal();
         activeEditId='';
@@ -220,5 +300,5 @@
   window.addEventListener('load',schedule,{once:true});
   setTimeout(schedule,100);
   setTimeout(schedule,500);
-  window.__AB_COMMANDES_ORDER_ROW_DETAILS_VERSION='3.0';
+  window.__AB_COMMANDES_ORDER_ROW_DETAILS_VERSION='3.1-custom-delete-modal';
 })();
