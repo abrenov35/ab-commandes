@@ -1,0 +1,51 @@
+name: AB COMMANDES V60 lien highlight fix
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-v60-highlight:
+    if: github.event.head_commit.message == 'AB COMMANDES V60 - appliquer contraste lien'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Renforcer visuellement le bouton lien
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('web-link-v31.js')
+          s=p.read_text(encoding='utf-8')
+          marker="      .ab-web-link-btn:not([disabled]):hover{background:#dcecff!important;border-color:#4f82b7!important}\n"
+          addition="""      .ab-web-link-btn[href]{\n        position:relative!important;\n        background:#dcebff!important;\n        border:2px solid #2f6fa8!important;\n        color:#123f67!important;\n        box-shadow:0 0 0 2px rgba(47,111,168,.12),0 2px 5px rgba(20,50,80,.14)!important;\n        opacity:1!important;\n      }\n      .ab-web-link-btn[href]:hover{background:#cfe3fb!important;border-color:#1f5f98!important}\n      .ab-web-link-btn[href]::after{\n        content:'✓';\n        position:absolute;\n        top:-6px;\n        right:-6px;\n        width:16px;\n        height:16px;\n        border-radius:50%;\n        display:flex;\n        align-items:center;\n        justify-content:center;\n        background:#198754;\n        color:#fff;\n        border:2px solid #fff;\n        font-size:10px;\n        font-weight:900;\n        line-height:1;\n        box-shadow:0 1px 3px rgba(0,0,0,.18);\n        pointer-events:none;\n      }\n"""
+          if '.ab-web-link-btn[href]::after' not in s:
+              if marker not in s:
+                  raise SystemExit('Marqueur CSS web-link introuvable')
+              s=s.replace(marker, marker+addition, 1)
+          s=s.replace("const VERSION='34.0';", "const VERSION='60.0';")
+          s=s.replace("const VERSION='33.0';", "const VERSION='60.0';")
+          p.write_text(s,encoding='utf-8')
+
+          i=Path('index.html')
+          h=i.read_text(encoding='utf-8')
+          h=h.replace('web-link-v31.js?v=3', 'web-link-v31.js?v=60')
+          i.write_text(h,encoding='utf-8')
+          PY
+      - name: Commit V60
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add web-link-v31.js index.html
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "AB COMMANDES V60 - lien présent plus visible"
+          git push
