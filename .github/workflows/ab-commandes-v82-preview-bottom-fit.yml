@@ -1,0 +1,33 @@
+name: AB COMMANDES V82 ajuster hauteur document
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'AB COMMANDES V82 - activer ajustement hauteur'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajouter V82 dans index.html
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="document-preview-bottom-fit-v82.js?v=82"></script>'
+          if tag not in s:
+              s=s.replace('</body>',tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "AB COMMANDES V82 - publier ajustement hauteur"
+          git push
