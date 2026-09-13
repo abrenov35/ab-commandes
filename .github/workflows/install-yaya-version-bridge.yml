@@ -1,0 +1,40 @@
+name: AB COMMANDES - installer version visible dans Yaya
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'yaya-version-bridge.js'
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer le bridge de version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="yaya-version-bridge.js?v=1"></script>'
+          if tag in s:
+              raise SystemExit(0)
+          if '</body>' not in s:
+              raise SystemExit('Balise </body> introuvable')
+          p.write_text(s.replace('</body>', tag+'\n</body>'), encoding='utf-8')
+          PY
+      - name: Publier
+        run: |
+          if git diff --quiet -- index.html; then
+            echo 'Déjà installé.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Installer la version AB COMMANDES visible dans Yaya'
+          git push
