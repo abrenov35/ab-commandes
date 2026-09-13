@@ -1,0 +1,41 @@
+name: AB COMMANDES V72 statut choix client source
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.event.head_commit.message == 'AB COMMANDES V72 - statut choix client source'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Corriger le statut par defaut dans openModal
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old="$('#fStatus').value=o?.status||'todo';"
+          new="$('#fStatus').value=o?.status||'choice';"
+          if old not in s:
+              if new in s:
+                  print('Déjà corrigé')
+              else:
+                  raise SystemExit('Point de correction statut introuvable')
+          else:
+              s=s.replace(old,new,1)
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "AB COMMANDES V72 - publier choix client par defaut"
+            git push
+          fi
