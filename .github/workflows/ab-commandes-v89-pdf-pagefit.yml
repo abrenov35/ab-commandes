@@ -1,0 +1,34 @@
+name: AB COMMANDES V89 PDF page fit
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'AB COMMANDES V89 - activer page entière multipage'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump PDF fit cache
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='document-preview-fit-v88.js?v=88'
+          new='document-preview-fit-v88.js?v=89'
+          if old not in s:
+              raise SystemExit('marqueur lecteur PDF introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+          PY
+      - name: Commit index
+        run: |
+          git config user.name 'abrenov35'
+          git config user.email 'abrenov35@gmail.com'
+          git add index.html
+          git commit -m 'AB COMMANDES V89 - publier page entière multipage' || exit 0
+          git push
