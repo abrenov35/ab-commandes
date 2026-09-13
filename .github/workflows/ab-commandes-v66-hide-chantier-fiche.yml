@@ -1,0 +1,35 @@
+name: AB COMMANDES V66 masquer chantier fiche
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    if: github.event.head_commit.message == 'AB COMMANDES V66 - masquer chantier fiche'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Charger V66 en dernier
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="modal-hide-chantier-fiche-v66.js?v=66"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "AB COMMANDES V66 - publier chantier masque"
+            git push
+          fi
