@@ -1,0 +1,44 @@
+name: AB COMMANDES V91 scroll complet aperçu documents
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'V91 - activer scroll complet apercu documents'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Activer cache V91 et version visible
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='document-preview-fit-v88.js?v=90'
+          new='document-preview-fit-v88.js?v=91'
+          if old not in s:
+              raise SystemExit('marqueur lecteur PDF v90 introuvable')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+
+          v=Path('version.json')
+          data=json.loads(v.read_text(encoding='utf-8'))
+          data['version']='91'
+          data['updated']='2026-09-13'
+          v.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          PY
+
+      - name: Commit publication V91
+        run: |
+          git config user.name 'abrenov35'
+          git config user.email 'abrenov35@gmail.com'
+          git add index.html version.json
+          git commit -m 'V91 - publier scroll complet apercu documents' || exit 0
+          git push
