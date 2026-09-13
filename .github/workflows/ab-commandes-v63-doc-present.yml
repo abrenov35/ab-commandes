@@ -1,0 +1,35 @@
+name: AB COMMANDES V63 document present
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  activate:
+    if: github.event.head_commit.message == 'AB COMMANDES V63 - document present'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Charger V63 en dernier
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="document-present-v63.js?v=63"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "AB COMMANDES V63 - publier document present"
+            git push
+          fi
