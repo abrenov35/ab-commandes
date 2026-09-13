@@ -1,4 +1,4 @@
-name: AB COMMANDES V94 corbeilles lecteur Yaya
+name: AB COMMANDES V95 modale suppression Yaya
 
 on:
   push:
@@ -9,30 +9,30 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.head_commit.message == 'CMD V94 - activer corbeilles lecteur Yaya'
+    if: github.event.head_commit.message == 'CMD V95 - activer modale suppression'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Forcer le chargement V94 du lecteur Yaya
+      - name: Publier la modale de suppression V95
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          old='<script src="yaya-parent-preview-v93.js?v=93"></script>'
-          new='<script src="yaya-parent-preview-v93.js?v=94"></script>'
+          old='<script src="yaya-parent-preview-v93.js?v=94"></script>'
+          new='<script src="yaya-parent-preview-v93.js?v=95"></script>'
           if old in s:
               s=s.replace(old,new,1)
           elif new not in s:
-              raise SystemExit('pont Yaya V93 introuvable')
+              raise SystemExit('pont Yaya V94/V95 introuvable')
           p.write_text(s,encoding='utf-8')
 
-          Path('version.json').write_text('{\n  "app": "AB COMMANDES",\n  "version": "94",\n  "updated": "2026-09-14"\n}\n',encoding='utf-8')
+          Path('version.json').write_text('{\n  "app": "AB COMMANDES",\n  "version": "95",\n  "updated": "2026-09-14"\n}\n',encoding='utf-8')
           PY
       - name: Commit publication
         run: |
           git config user.name 'abrenov35'
           git config user.email 'abrenov35@gmail.com'
           git add index.html version.json
-          git commit -m 'CMD V94 - publier corbeilles lecteur Yaya' || exit 0
+          git commit -m 'CMD V95 - publier modale suppression' || exit 0
           git push
