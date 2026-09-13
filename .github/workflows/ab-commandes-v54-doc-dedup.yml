@@ -1,0 +1,40 @@
+name: AB COMMANDES V54 document dedup
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish-v54:
+    if: github.event.head_commit.message == 'AB COMMANDES V54 - masquer bouton document haut'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Charger V54 dans index.html
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='<script src="modal-doc-dedup-v54.js?v=54"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit index
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "AB COMMANDES V54 - activer suppression doublon document"
+          git push
