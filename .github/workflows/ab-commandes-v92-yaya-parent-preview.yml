@@ -1,0 +1,39 @@
+name: AB COMMANDES V92 lecteur parent Yaya
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'V92 - activer ouverture documents dans Yaya'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Activer le pont vers le lecteur Yaya
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          marker='<script src="yaya-version-bridge.js?v=1"></script>'
+          add='<script src="yaya-parent-preview-v92.js?v=92"></script>'
+          if add not in s:
+              if marker not in s:
+                  raise SystemExit('marqueur yaya-version-bridge introuvable')
+              s=s.replace(marker, marker+'\n'+add, 1)
+          p.write_text(s,encoding='utf-8')
+
+          v=Path('version.json')
+          v.write_text('{\n  "app": "AB COMMANDES",\n  "version": "92",\n  "updated": "2026-09-13"\n}\n',encoding='utf-8')
+          PY
+      - name: Commit publication
+        run: |
+          git config user.name 'abrenov35'
+          git config user.email 'abrenov35@gmail.com'
+          git add index.html version.json
+          git commit -m 'V92 - publier ouverture documents dans Yaya' || exit 0
+          git push
