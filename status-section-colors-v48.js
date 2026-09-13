@@ -1,4 +1,4 @@
-/* Compatibilité anciennes pages V48 : aucune couleur, uniquement allègement visuel de la modale. */
+/* Compatibilité anciennes pages V48 : aucune couleur, allègement modale + chargement V55. */
 (function(){
   'use strict';
   const id='ab-commandes-v48-cache-modal-light';
@@ -17,5 +17,11 @@
     `;
     document.head.appendChild(s);
   }
-  window.__AB_COMMANDES_STATUS_SECTION_COLORS_VERSION='48-cache-modal-light-v54';
+  if(!document.querySelector('script[data-ab-footer-doc-v55]')){
+    const script=document.createElement('script');
+    script.src='modal-footer-doc-v55.js?v=55';
+    script.dataset.abFooterDocV55='1';
+    document.head.appendChild(script);
+  }
+  window.__AB_COMMANDES_STATUS_SECTION_COLORS_VERSION='48-cache-v55';
 })();
