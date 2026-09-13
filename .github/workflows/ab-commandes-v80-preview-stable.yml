@@ -9,25 +9,28 @@ permissions:
 
 jobs:
   publish:
-    if: github.event.head_commit.message == 'AB COMMANDES V80 - activer lecteur stable'
+    if: github.event.head_commit.message == 'AB COMMANDES V80.1 - activer lecteur stable'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ajouter V80 dans index.html
+      - name: Publier V80.1 dans index.html
         run: |
           python - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text(encoding='utf-8')
-          tag='<script src="document-preview-stable-v80.js?v=80"></script>'
-          if tag not in s:
-              s=s.replace('</body>',tag+'\n</body>')
-              p.write_text(s,encoding='utf-8')
+          old='<script src="document-preview-stable-v80.js?v=80"></script>'
+          new='<script src="document-preview-stable-v80.js?v=801"></script>'
+          if old in s:
+              s=s.replace(old,new)
+          elif new not in s:
+              s=s.replace('</body>',new+'\n</body>')
+          p.write_text(s,encoding='utf-8')
           PY
       - name: Commit
         run: |
           git config user.name "abrenov35"
           git config user.email "abrenov35@gmail.com"
           git add index.html
-          git diff --cached --quiet || git commit -m "AB COMMANDES V80 - publier lecteur stable"
+          git diff --cached --quiet || git commit -m "AB COMMANDES V80.1 - publier lecteur stable"
           git push
