@@ -3,9 +3,10 @@ const COMMANDES_SHEET = 'COMMANDES';
 const DOCUMENTS_SHEET = 'DOCUMENTS';
 const DRIVE_ROOT_FOLDER = 'AB COMMANDES';
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const LAST_ERROR_PROPERTY = 'AB_COMMANDES_LAST_ERROR';
 
 /*
- * V43 : upload document idempotent + journal d'erreur exploitable.
+ * V43.1 : upload document idempotent + diagnostic last_error exploitable.
  * Le schéma reste non destructif : les colonnes existantes sont conservées.
  */
 const COMMAND_FIELDS = [
@@ -19,10 +20,24 @@ const DOCUMENT_FIELDS = [
 ];
 
 function doGet(e) {
+  const action = String((e && e.parameter && e.parameter.action) || 'list');
   try {
+    if (action === 'last_error') {
+      return output_(readLastError_(), e);
+    }
+
+    if (action === 'health') {
+      return output_({
+        ok: true,
+        service: 'AB COMMANDES',
+        version: '43.1',
+        time: new Date().toISOString(),
+        capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read','idempotent_upload','error_log','last_error']
+      }, e);
+    }
+
     const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
     const ctx = ensureSheets_(ss);
-    const action = String((e && e.parameter && e.parameter.action) || 'list');
     const id = String((e && e.parameter && e.parameter.id) || '').trim();
     let data;
 
@@ -34,20 +49,12 @@ function doGet(e) {
       data = { ok: true, commande: findObjectById_(ctx.commandes, id) };
     } else if (action === 'document') {
       data = { ok: true, document: findObjectById_(ctx.documents, id) };
-    } else if (action === 'health') {
-      data = {
-        ok: true,
-        service: 'AB COMMANDES',
-        version: '43.0',
-        time: new Date().toISOString(),
-        capabilities: ['upsert','delete','document_upsert','document_delete','document_upload','targeted_read','idempotent_upload','error_log']
-      };
     } else {
       data = { ok: false, error: 'Action inconnue' };
     }
     return output_(data, e);
   } catch (err) {
-    logError_('doGet', e && e.parameter ? e.parameter : {}, err);
+    logError_('doGet:' + action, e && e.parameter ? e.parameter : {}, err);
     return output_({ ok: false, error: errorMessage_(err) }, e);
   }
 }
@@ -407,17 +414,41 @@ function json_(obj) {
 function logError_(scope, data, err) {
   try {
     const safe = {
+      time: new Date().toISOString(),
       scope: String(scope || ''),
       action: String(data && data.action || ''),
       id: String(data && data.id || ''),
       commande_id: String(data && data.commande_id || ''),
       chantier: String(data && data.chantier || ''),
+      file_name: String(data && (data.file_name || data.nom_fichier) || ''),
+      mime_type: String(data && data.mime_type || ''),
       error: errorMessage_(err),
       stack: String(err && err.stack || '')
     };
+    try {
+      PropertiesService.getScriptProperties().setProperty(LAST_ERROR_PROPERTY, JSON.stringify(safe));
+    } catch (propertyErr) {
+      safe.property_error = errorMessage_(propertyErr);
+    }
     console.error('AB COMMANDES ERROR ' + JSON.stringify(safe));
   } catch (_) {
     console.error('AB COMMANDES ERROR ' + errorMessage_(err));
+  }
+}
+
+function readLastError_() {
+  try {
+    const raw = PropertiesService.getScriptProperties().getProperty(LAST_ERROR_PROPERTY);
+    if (!raw) {
+      return { ok: true, last_error: null, message: 'Aucune erreur enregistrée.' };
+    }
+    try {
+      return { ok: true, last_error: JSON.parse(raw) };
+    } catch (_) {
+      return { ok: true, last_error: { error: String(raw) } };
+    }
+  } catch (err) {
+    return { ok: false, error: errorMessage_(err) };
   }
 }
 
