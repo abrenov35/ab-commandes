@@ -1,0 +1,33 @@
+name: AB COMMANDES V74 barre documents stable
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'AB COMMANDES V74 - barre documents stable'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ajouter V74 dans index
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          tag='<script src="document-preview-toolbar-v74.js?v=74"></script>'
+          if tag not in s:
+              s=s.replace('</body>', tag+'\n</body>')
+              p.write_text(s)
+          PY
+      - name: Publier
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html
+          git diff --cached --quiet || git commit -m "AB COMMANDES V74 - publier barre documents stable"
+          git push
