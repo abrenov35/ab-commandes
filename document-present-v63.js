@@ -1,7 +1,7 @@
 (function(){
   'use strict';
 
-  const VERSION='63.0';
+  const VERSION='63.1';
   const STYLE_ID='ab-commandes-document-present-v63-style';
 
   function docs(){
@@ -23,7 +23,8 @@
   }
 
   function injectStyle(){
-    if(document.getElementById(STYLE_ID))return;
+    const old=document.getElementById(STYLE_ID);
+    if(old)old.remove();
     const s=document.createElement('style');
     s.id=STYLE_ID;
     s.textContent=`
@@ -39,24 +40,8 @@
         border-color:#0d5b35!important;
       }
       #modal #abEditDocBtn.ab-has-doc-v63::after{
-        content:'✓';
-        position:absolute;
-        top:-7px;
-        right:-7px;
-        width:17px;
-        height:17px;
-        border-radius:50%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:#22a06b;
-        color:#fff;
-        border:2px solid #fff;
-        font-size:10px;
-        font-weight:900;
-        line-height:1;
-        box-shadow:0 1px 3px rgba(0,0,0,.18);
-        pointer-events:none;
+        content:none!important;
+        display:none!important;
       }
     `;
     document.head.appendChild(s);
