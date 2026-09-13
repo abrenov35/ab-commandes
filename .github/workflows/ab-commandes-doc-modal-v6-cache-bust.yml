@@ -1,0 +1,41 @@
+name: AB COMMANDES V44 doc modal v6
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/ab-commandes-doc-modal-v6-cache-bust.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Bump doc modal cache version
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'doc-modal-simple.js?v=5'
+          new = 'doc-modal-simple.js?v=6'
+          if old in s:
+              s = s.replace(old, new)
+              p.write_text(s, encoding='utf-8')
+          elif new not in s:
+              raise SystemExit('Référence doc-modal-simple introuvable')
+          PY
+          rm -f .github/workflows/ab-commandes-doc-modal-v6-cache-bust.yml
+      - name: Commit publication
+        run: |
+          git config user.name "abrenov35"
+          git config user.email "abrenov35@gmail.com"
+          git add index.html .github/workflows/ab-commandes-doc-modal-v6-cache-bust.yml
+          git diff --cached --quiet && exit 0
+          git commit -m "AB COMMANDES V44 - activer upload modification et visualisation documents"
+          git push
