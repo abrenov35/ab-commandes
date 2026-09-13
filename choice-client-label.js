@@ -3,6 +3,7 @@
 
   const NEW='Attente choix client';
   const OLD_LABELS=['Choix client à faire','Choix client'];
+  let supplierPatchScheduled=false;
 
   function patchStatusDefinition(){
     try{
@@ -36,6 +37,35 @@
     if(select.value!=='')select.selectedIndex=0;
   }
 
+  function orderForRow(row){
+    try{
+      const id=String(row?.dataset?.id||row?.dataset?.ficheId||'');
+      if(!id||typeof orders==='undefined'||!Array.isArray(orders))return null;
+      return orders.find(o=>String(o.id||'')===id)||null;
+    }catch(e){return null}
+  }
+
+  function patchOrderSupplierLabels(root){
+    if(!root)return;
+    root.querySelectorAll('.order-row[data-id],.order-row[data-fiche-id]').forEach(row=>{
+      const cell=row.querySelector('.ab-order-resp');
+      if(!cell)return;
+      const order=orderForRow(row);
+      if(!order)return;
+      cell.textContent=String(order.fournisseur||'—');
+      cell.title='Fournisseur';
+    });
+  }
+
+  function scheduleSupplierPatch(){
+    if(supplierPatchScheduled)return;
+    supplierPatchScheduled=true;
+    requestAnimationFrame(()=>{
+      supplierPatchScheduled=false;
+      patchOrderSupplierLabels(document);
+    });
+  }
+
   function patchRenderedLabels(root){
     if(!root)return;
 
@@ -54,11 +84,14 @@
       const value=String(el.textContent||'').trim();
       if(OLD_LABELS.includes(value))el.textContent=NEW;
     });
+
+    patchOrderSupplierLabels(root);
   }
 
   function refresh(){
     patchStatusDefinition();
     patchRenderedLabels(document);
+    scheduleSupplierPatch();
   }
 
   function wrapRender(name){
@@ -67,6 +100,7 @@
     const wrapped=function(){
       const out=previous.apply(this,arguments);
       patchRenderedLabels(document);
+      scheduleSupplierPatch();
       return out;
     };
     wrapped.__abChoiceLabelWrapped=true;
@@ -87,7 +121,8 @@
     },60);
   });
 
+  new MutationObserver(scheduleSupplierPatch).observe(document.body,{childList:true,subtree:true});
   window.addEventListener('load',refresh,{once:true});
 
-  window.__AB_COMMANDES_CHOICE_CLIENT_LABEL_VERSION='3.0';
+  window.__AB_COMMANDES_CHOICE_CLIENT_LABEL_VERSION='3.1-supplier-display';
 })();
