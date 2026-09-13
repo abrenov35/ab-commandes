@@ -1,0 +1,38 @@
+name: AB COMMANDES V93 ouverture directe Yaya
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: github.event.head_commit.message == 'CMD V93 - activer lecteur principal Yaya'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Activer le pont direct vers Yaya
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text(encoding='utf-8')
+          old='<script src="yaya-parent-preview-v92.js?v=92"></script>'
+          new='<script src="yaya-parent-preview-v93.js?v=93"></script>'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit('pont Yaya V92/V93 introuvable')
+          p.write_text(s,encoding='utf-8')
+
+          Path('version.json').write_text('{\n  "app": "AB COMMANDES",\n  "version": "93",\n  "updated": "2026-09-13"\n}\n',encoding='utf-8')
+          PY
+      - name: Commit publication
+        run: |
+          git config user.name 'abrenov35'
+          git config user.email 'abrenov35@gmail.com'
+          git add index.html version.json
+          git commit -m 'CMD V93 - publier lecteur principal Yaya' || exit 0
+          git push
