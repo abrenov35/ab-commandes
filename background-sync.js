@@ -5,24 +5,17 @@
   const EMBED_STATE_KEY='AB_COMMANDES_EMBED_CACHE_V2';
   const PENDING_KEY='AB_COMMANDES_PENDING_OPS_V1';
   const LOCAL_MAX_AGE=30*24*60*60*1000;
-  const OPEN_SYNC_DELAY_MS=0;
   const IS_EMBED=new URL(window.location.href).searchParams.get('embed')==='1';
 
   let queue=readQueue();
   let remoteSyncInFlight=false;
   let flushInFlight=false;
-  let openingSyncDone=false;
   let hadCacheAtOpen=false;
-  let userInteracted=false;
   let localRenderPending=false;
 
   function safeArray(v){return Array.isArray(v)?v:[]}
   function text(v){return String(v==null?'':v)}
-
-  function markUserInteraction(){userInteracted=true}
-  ['pointerdown','touchstart','keydown','input','change'].forEach(function(type){
-    document.addEventListener(type,markUserInteraction,{capture:true,passive:true});
-  });
+  function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
 
   function orderComparable(o){
     return {
@@ -55,12 +48,6 @@
 
   function sameComparable(a,b){return JSON.stringify(a)===JSON.stringify(b)}
 
-  function stateSignature(orderList,docList){
-    const os=safeArray(orderList).map(orderComparable).sort((a,b)=>a.id.localeCompare(b.id)||JSON.stringify(a).localeCompare(JSON.stringify(b)));
-    const ds=safeArray(docList).map(docComparable).sort((a,b)=>a.id.localeCompare(b.id)||JSON.stringify(a).localeCompare(JSON.stringify(b)));
-    return JSON.stringify([os,ds]);
-  }
-
   function readQueue(){
     try{
       const raw=localStorage.getItem(PENDING_KEY);
@@ -77,7 +64,7 @@
     try{
       const payload={savedAt:Date.now(),orders:safeArray(nextOrders),documents:safeArray(nextDocs)};
       localStorage.setItem(LOCAL_STATE_KEY,JSON.stringify(payload));
-      localStorage.setItem(EMBED_STATE_KEY,JSON.stringify({version:3,...payload}));
+      localStorage.setItem(EMBED_STATE_KEY,JSON.stringify({version:4,...payload}));
     }catch(e){}
   }
 
@@ -95,24 +82,6 @@
       }catch(e){}
     }
     return null;
-  }
-
-  function hydrateLocalState(){
-    try{
-      const cached=readCachedState();
-      if(!cached)return false;
-      if(safeArray(orders).length)return false;
-      orders=cached.orders.map(o=>{
-        try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}
-      });
-      documents=safeArray(cached.documents);
-      const merged=overlayPending(orders,documents);
-      orders=merged.orders;
-      documents=merged.documents;
-      if(typeof renderAll==='function')renderAll();
-      try{setSync(true,queue.length?'Affichage instantané · modifications en attente':'Affichage instantané · synchro en arrière-plan')}catch(e){}
-      return true;
-    }catch(e){return false}
   }
 
   function coalesce(op){
@@ -183,59 +152,26 @@
     setTimeout(run,0);
   }
 
-  function applyLiveState(nextOrders,nextDocs,renderNow){
-    const before=stateSignature(orders,documents);
-    const after=stateSignature(nextOrders,nextDocs);
-    if(before===after)return false;
-    orders=nextOrders;
-    documents=nextDocs;
-    saveLocalState();
-    if(renderNow&&!modalOpen()&&typeof renderAll==='function')renderAll();
-    return true;
-  }
-
-  async function syncOnceOnOpen(){
-    if(openingSyncDone||remoteSyncInFlight)return false;
-    openingSyncDone=true;
-    remoteSyncInFlight=true;
+  function hydrateLocalState(){
     try{
-      const [a,b]=await Promise.all([jsonp('list'),jsonp('documents')]);
-      if(!a||!a.ok)throw new Error((a&&a.error)||'Lecture commandes impossible');
-      if(!b||!b.ok)throw new Error((b&&b.error)||'Lecture documents impossible');
-
-      const remoteOrders=safeArray(a.commandes).map(o=>{
+      const cached=readCachedState();
+      if(!cached)return false;
+      if(safeArray(orders).length)return false;
+      orders=cached.orders.map(o=>{
         try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}
       });
-      const remoteDocs=safeArray(b.documents);
-
-      reconcileQueue(remoteOrders,remoteDocs);
-      const merged=overlayPending(remoteOrders,remoteDocs);
-
-      if(hadCacheAtOpen){
-        // Mode stale-while-revalidate : l'écran affiché reste totalement immobile.
-        // La version fraîche est placée dans le cache et sera visible à la prochaine ouverture.
-        saveSnapshot(merged.orders,merged.documents);
-      }else{
-        // Premier usage sans cache : un seul rendu lorsque les données arrivent.
-        applyLiveState(merged.orders,merged.documents,!modalOpen());
-      }
-
+      documents=safeArray(cached.documents);
+      const merged=overlayPending(orders,documents);
+      orders=merged.orders;
+      documents=merged.documents;
+      if(typeof renderAll==='function')renderAll();
       try{
-        setSync(
-          true,
-          queue.length
-            ? 'Synchronisé en arrière-plan · modifications à envoyer'
-            : 'Synchronisé en arrière-plan · affichage stable'
-        );
+        setSync(true,queue.length
+          ? 'Modifications en attente · cliquer Actualiser'
+          : 'Mode manuel · cliquer Actualiser');
       }catch(e){}
       return true;
-    }catch(e){
-      console.warn('AB COMMANDES · synchro à l’ouverture',e);
-      try{setSync(false,hadCacheAtOpen?'Dernier affichage conservé':'Connexion impossible')}catch(err){}
-      return false;
-    }finally{
-      remoteSyncInFlight=false;
-    }
+    }catch(e){return false}
   }
 
   async function sendOperation(op){
@@ -248,31 +184,83 @@
     return result;
   }
 
-  async function flushQueue(){
+  // En mode manuel, cette fonction n'est appelée QUE par Actualiser.
+  // Les opérations restent dans la file jusqu'à confirmation par la lecture distante.
+  async function flushQueueManual(){
     if(flushInFlight||!queue.length)return false;
     if(typeof navigator!=='undefined'&&navigator.onLine===false)return false;
     flushInFlight=true;
     let sentAny=false;
-
     try{
       for(const op of [...queue]){
         try{
           await sendOperation(op);
-          queue=queue.filter(current=>current!==op);
-          persistQueue();
           sentAny=true;
         }catch(e){
-          console.warn('AB COMMANDES · envoi différé',e);
+          console.warn('AB COMMANDES · envoi manuel différé',e);
         }
       }
     }finally{
       flushInFlight=false;
     }
-
-    if(sentAny){
-      try{setSync(true,queue.length?'Certaines modifications restent en attente':'Enregistré')}catch(e){}
-    }
     return sentAny;
+  }
+
+  async function readRemote(){
+    const [a,b]=await Promise.all([jsonp('list'),jsonp('documents')]);
+    if(!a||!a.ok)throw new Error((a&&a.error)||'Lecture commandes impossible');
+    if(!b||!b.ok)throw new Error((b&&b.error)||'Lecture documents impossible');
+    const remoteOrders=safeArray(a.commandes).map(o=>{
+      try{return typeof normalizeFromSheet==='function'?normalizeFromSheet(o):o}catch(e){return o}
+    });
+    return {orders:remoteOrders,documents:safeArray(b.documents)};
+  }
+
+  async function manualSync(silent=false){
+    if(remoteSyncInFlight)return false;
+    if(modalOpen()){
+      try{setSync(false,'Fermer la fenêtre avant d’actualiser')}catch(e){}
+      return false;
+    }
+
+    remoteSyncInFlight=true;
+    try{
+      if(!silent&&typeof showSaving==='function')showSaving(true,'Actualisation…');
+
+      const hadPending=queue.length>0;
+      if(hadPending){
+        await flushQueueManual();
+        // Laisse le temps au Web App d'enregistrer avant la relecture de contrôle.
+        await wait(450);
+      }
+
+      const remote=await readRemote();
+      reconcileQueue(remote.orders,remote.documents);
+      const merged=overlayPending(remote.orders,remote.documents);
+      orders=merged.orders;
+      documents=merged.documents;
+      saveLocalState();
+      if(typeof renderAll==='function')renderAll();
+
+      if(!IS_EMBED&&typeof loadYayaChantiers==='function'){
+        try{await Promise.resolve(loadYayaChantiers(true))}catch(e){}
+      }
+
+      try{
+        const h=new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+        setSync(true,queue.length
+          ? 'Actualisé '+h+' · modifications encore en attente'
+          : 'Actualisé '+h);
+      }catch(e){}
+      return true;
+    }catch(e){
+      console.warn('AB COMMANDES · actualisation manuelle',e);
+      try{setSync(false,'Actualisation impossible · affichage conservé')}catch(err){}
+      return false;
+    }finally{
+      remoteSyncInFlight=false;
+      if(!silent&&typeof showSaving==='function')showSaving(false);
+    }
   }
 
   try{
@@ -290,8 +278,7 @@
       saveLocalState();
       if(modalOpen())renderLocalChangeWhenSafe();
       else if(typeof renderAll==='function')renderAll();
-      try{setSync(true,'Enregistré localement · envoi en arrière-plan')}catch(e){}
-      setTimeout(flushQueue,0);
+      try{setSync(true,'Enregistré localement · cliquer Actualiser')}catch(e){}
       return true;
     };
 
@@ -302,8 +289,7 @@
       saveLocalState();
       if(modalOpen())renderLocalChangeWhenSafe();
       else if(typeof renderAll==='function')renderAll();
-      try{setSync(true,'Suppression locale · envoi en arrière-plan')}catch(e){}
-      setTimeout(flushQueue,0);
+      try{setSync(true,'Suppression locale · cliquer Actualiser')}catch(e){}
       return true;
     };
 
@@ -318,8 +304,7 @@
       saveLocalState();
       try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
       if(!modalOpen()&&typeof renderAll==='function')renderAll();
-      try{setSync(true,'Document enregistré localement · envoi en arrière-plan')}catch(e){}
-      setTimeout(flushQueue,0);
+      try{setSync(true,'Document enregistré localement · cliquer Actualiser')}catch(e){}
       return true;
     };
 
@@ -330,40 +315,38 @@
       saveLocalState();
       try{if(typeof renderDocList==='function')renderDocList()}catch(e){}
       if(!modalOpen()&&typeof renderAll==='function')renderAll();
-      try{setSync(true,'Suppression locale · envoi en arrière-plan')}catch(e){}
-      setTimeout(flushQueue,0);
+      try{setSync(true,'Suppression locale · cliquer Actualiser')}catch(e){}
       return true;
     };
 
-    // Aucun rechargement réseau pendant que la page Commande est ouverte.
-    loadAll=async function(){return false};
+    // Le bouton Actualiser existant peut continuer à appeler loadAll().
+    // Désormais, loadAll() est la SEULE entrée réseau de synchronisation commandes.
+    loadAll=manualSync;
   }catch(e){
-    console.error('AB COMMANDES · installation synchro stable',e);
+    console.error('AB COMMANDES · installation synchro manuelle',e);
   }
 
   hadCacheAtOpen=hydrateLocalState();
   if(queue.length){
     const merged=overlayPending(safeArray(orders),safeArray(documents));
-    applyLiveState(merged.orders,merged.documents,!modalOpen());
+    orders=merged.orders;
+    documents=merged.documents;
+    saveLocalState();
+    if(!modalOpen()&&typeof renderAll==='function')renderAll();
   }else if(!hadCacheAtOpen){
     saveLocalState();
   }
 
-  // Une seule synchro réseau à l'ouverture. En mode intégré Yaya, pas de seconde
-  // lecture de la base chantiers : le cache Yaya du même domaine suffit.
-  setTimeout(async()=>{
-    await syncOnceOnOpen();
-    await flushQueue();
+  // IMPORTANT : aucun appel réseau automatique ici.
+  // L'opérateur décide du moment de la synchronisation avec Actualiser.
+  try{
+    setSync(true,queue.length
+      ? 'Modifications en attente · cliquer Actualiser'
+      : 'Mode manuel · cliquer Actualiser');
+  }catch(e){}
 
-    if(!IS_EMBED&&!userInteracted){
-      try{
-        if(typeof loadYayaChantiers==='function'){
-          await Promise.resolve(loadYayaChantiers(true));
-          try{if(typeof tryOpenDeepLink==='function')tryOpenDeepLink()}catch(e){}
-        }
-      }catch(e){}
-    }
-  },OPEN_SYNC_DELAY_MS);
-
-  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.6-stale-while-revalidate';
+  window.abCommandesActualiser=manualSync;
+  window.actualiserCommandes=manualSync;
+  window.__AB_COMMANDES_MANUAL_SYNC=manualSync;
+  window.__AB_COMMANDES_BACKGROUND_SYNC_VERSION='1.7-manual-only';
 })();
